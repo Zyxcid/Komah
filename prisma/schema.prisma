@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  passwordHash   String
+  phone          String
+  nim            String?  @unique
+  role           String   @default("USER") // USER | DRIVER | ADMIN
+  avatarUrl      String?
+
+  // Driver-specific fields
+  vehiclePlate   String?
+  vehicleType    String?
+  ktmUrl         String?
+  verifyStatus   String?  // PENDING | VERIFIED | REJECTED (driver only)
+  isOnline       Boolean  @default(false)
+  rating         Float    @default(0)
+  ratingCount    Int      @default(0)
+  totalTrips     Int      @default(0)
+  totalEarnings  Int      @default(0)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  orders         Order[]  @relation("UserOrders")
+  drives         Order[]  @relation("DriverOrders")
+  addresses      SavedAddress[]
+}
+
+model Location {
+  id         String   @id @default(cuid())
+  name       String
+  category   String   // KAMPUS | KOS | PUBLIK
+  fare       Int      // tarif dari/ke pusat kampus (Rp)
+  isPopular  Boolean  @default(false)
+  lat        Float?   // koordinat peta (approx, untuk Leaflet/OSM)
+  lng        Float?
+
+  pickups    Order[]  @relation("PickupOrders")
+  drops      Order[]  @relation("DestOrders")
+  addressOf  SavedAddress[]
+}
+
+model SavedAddress {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label      String
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+  detail     String?
+  createdAt  DateTime @default(now())
+}
+
+model Order {
+  id             String    @id @default(cuid())
+  code           String    @unique // KMH-XXXX
+  userId         String
+  user           User      @relation("UserOrders", fields: [userId], references: [id])
+  driverId       String?
+  driver         User?     @relation("DriverOrders", fields: [driverId], references: [id])
+
+  type           String    // OJEK | BARANG | MAKANAN
+  pickupLocationId String
+  pickupLocation Location  @relation("PickupOrders", fields: [pickupLocationId], references: [id])
+  destLocationId String
+  destLocation   Location  @relation("DestOrders", fields: [destLocationId], references: [id])
+  pickupDetail   String?
+  destDetail     String?
+  itemNote       String?   // deskripsi barang / makanan
+  passengerNote  String?
+
+  // Koordinat peta (bisa digeser user saat memesan; null = pakai koordinat lokasi)
+  pickupLat      Float?
+  pickupLng      Float?
+  destLat        Float?
+  destLng        Float?
+  // Posisi driver terakhir saat pesanan aktif (dikirim dashboard driver)
+  driverLat      Float?
+  driverLng      Float?
+  driverPosAt    DateTime?
+
+  fare           Int       // total tarif (Rp)
+  paymentMethod  String    @default("TUNAI")
+  status         String    @default("MENCARI") // MENCARI | DIKONFIRMASI | BERJALAN | SELESAI | DIBATALKAN
+  rating         Int?
+  review         String?
+
+  createdAt      DateTime  @default(now())
+  acceptedAt     DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+}

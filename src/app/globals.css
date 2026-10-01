@@ -1,0 +1,195 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-jakarta);
+  --font-mono: var(--font-jakarta);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Warna khas KOMAH (identitas UNP: hijau + emas) */
+  --color-gold: #F5B301;
+  --color-gold-dark: #C98F00;
+  --color-gold-soft: #FDF3D7;
+  --color-unp: #0E7A3E;
+  --color-unp-dark: #0A5C2E;
+  --color-unp-deep: #07451F;
+  --color-unp-soft: #E7F4EC;
+}
+
+:root {
+  --radius: 0.85rem;
+  --background: #FAFCFB;
+  --foreground: #12241A;
+  --card: #FFFFFF;
+  --card-foreground: #12241A;
+  --popover: #FFFFFF;
+  --popover-foreground: #12241A;
+  --primary: #0E7A3E;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E7F4EC;
+  --secondary-foreground: #0A5C2E;
+  --muted: #F0F6F2;
+  --muted-foreground: #5C6E62;
+  --accent: #E7F4EC;
+  --accent-foreground: #0A5C2E;
+  --destructive: #DC2626;
+  --border: #E3EDE7;
+  --input: #D7E5DC;
+  --ring: #0E7A3E;
+  --chart-1: #0E7A3E;
+  --chart-2: #F5B301;
+  --chart-3: #34A853;
+  --chart-4: #C98F00;
+  --chart-5: #7BC896;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #12241A;
+  --sidebar-primary: #0E7A3E;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E7F4EC;
+  --sidebar-accent-foreground: #0A5C2E;
+  --sidebar-border: #E3EDE7;
+  --sidebar-ring: #0E7A3E;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01" on;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Scrollbar halus khas aplikasi */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #C8DCCE;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9FC4AB;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Pola peta halus untuk hero */
+.map-pattern {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.14) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+/* Animasi garis rute */
+@keyframes dash-move {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.route-dash {
+  animation: dash-move 1.2s linear infinite;
+}
+
+@keyframes soft-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.soft-float {
+  animation: soft-float 4s ease-in-out infinite;
+}
+.soft-float-delay {
+  animation: soft-float 5s ease-in-out 1.2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: pulse-ring 1.8s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}
+
+/* Marker driver di peta Leaflet — denyut hijau UNP */
+@keyframes komah-marker-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(14, 122, 62, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(14, 122, 62, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(14, 122, 62, 0);
+  }
+}
+.komah-driver-marker {
+  animation: komah-marker-pulse 1.8s ease-out infinite;
+}

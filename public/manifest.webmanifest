@@ -1,0 +1,50 @@
+{
+  "name": "KOMAH — Ojek & Antar Daring Civitas UNP",
+  "short_name": "KOMAH",
+  "description": "Layanan ojek dan pengantaran barang & makanan khusus civitas UNP. Tarif transparan, driver mahasiswa terverifikasi KTM, bayar tunai saat sampai.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0E7A3E",
+  "lang": "id",
+  "categories": ["travel", "food", "shopping"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Pesan Ojek",
+      "short_name": "Ojek",
+      "description": "Langsung ke pemesanan ojek penumpang",
+      "url": "/#/pesan?type=OJEK",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Antar Makanan",
+      "short_name": "Makanan",
+      "description": "Langsung ke pemesanan antar makanan",
+      "url": "/#/pesan?type=MAKANAN",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
