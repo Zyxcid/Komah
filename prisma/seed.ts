@@ -11,6 +11,9 @@ async function main() {
   await db.savedAddress.deleteMany();
   await db.user.deleteMany();
   await db.location.deleteMany();
+  await db.setting.deleteMany();
+
+  await db.setting.create({ data: { key: "baseFare", value: "6000" } });
 
   console.log("Menanam lokasi UNP...");
   // Koordinat approx di sekitar kampus UNP Air Tawar, Padang (untuk demo peta — bisa disesuaikan).
@@ -111,6 +114,8 @@ async function main() {
         phone: d.phone,
         nim: d.nim,
         role: "DRIVER",
+        // Driver demo membuka aplikasi langsung di dashboard.
+        appMode: "DRIVER",
         vehiclePlate: d.plate,
         vehicleType: d.vehicle,
         verifyStatus: "VERIFIED",
@@ -134,6 +139,7 @@ async function main() {
       phone: "082133335555",
       nim: "2310245078",
       role: "DRIVER",
+      appMode: "DRIVER",
       vehiclePlate: "BA 6677 QW",
       vehicleType: "Honda Beat Merah",
       verifyStatus: "PENDING",

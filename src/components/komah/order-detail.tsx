@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  ArrowLeft,
   BadgeCheck,
   Bike,
   Check,
   ClipboardList,
   Loader2,
   MapPin,
+  MessageCircle,
   Navigation,
-  Phone,
   ShieldQuestion,
   Star,
   Timer,
@@ -39,8 +38,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { apiCall, dateId, navigate, rupiah, timeId, useApi } from "./lib";
+import { apiCall, dateId, rupiah, timeId, useApi, waLink } from "./lib";
 import { RouteMap } from "./map-view";
+import { useOsmrRoute } from "./use-route";
 import { RatingStars, StatusBadge, TypeBadge, UserAvatar } from "./bits";
 import type { OrderT } from "@/lib/types";
 
@@ -59,7 +59,6 @@ export function OrderDetailView({ code }: { code: string }) {
   const [rateOpen, setRateOpen] = useState(false);
   const [stars, setStars] = useState(0);
   const [review, setReview] = useState("");
-  const [routeLine, setRouteLine] = useState<Array<{ lat: number; lng: number }> | null>(null);
 
   // Titik peta: prioritas koordinat pesanan (pin yang digeser), fallback lokasi.
   const pickupPos = useMemo(() => {
@@ -81,32 +80,8 @@ export function OrderDetailView({ code }: { code: string }) {
     [order]
   );
 
-  // Ambil rute jalan (OSRM publik, gratis) sekali per rute; gagal → garis lurus.
-  const routeKey = order && pickupPos && destPos ? `${order.id}|${pickupPos.lat},${pickupPos.lng}|${destPos.lat},${destPos.lng}` : null;
-  useEffect(() => {
-    if (!routeKey || !pickupPos || !destPos) return;
-    let cancelled = false;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 6000);
-    fetch(
-      `https://router.project-osrm.org/route/v1/driving/${pickupPos.lng},${pickupPos.lat};${destPos.lng},${destPos.lat}?overview=full&geometries=geojson`,
-      { signal: ctrl.signal }
-    )
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("osrm"))))
-      .then((j) => {
-        if (cancelled) return;
-        const coords = j?.routes?.[0]?.geometry?.coordinates as Array<[number, number]> | undefined;
-        if (coords?.length) setRouteLine(coords.map(([lng, lat]) => ({ lat, lng })));
-      })
-      .catch(() => {
-        // Biarkan null → peta menampilkan garis lurus antar titik.
-      })
-      .finally(() => clearTimeout(timer));
-    return () => {
-      cancelled = true;
-      ctrl.abort();
-    };
-  }, [routeKey]);
+  // Rute jalan dari OSRM (hook bersama) — gagal → peta menggambar garis lurus.
+  const route = useOsmrRoute(pickupPos, destPos, order ? order.id : null);
 
   const currentStep = useMemo(() => {
     if (!order) return -1;
@@ -160,18 +135,11 @@ export function OrderDetailView({ code }: { code: string }) {
   const canRate = isMine && order.status === "SELESAI" && !order.rating;
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-5 px-4 pb-10 pt-6 sm:px-6">
-      {/* Kepala halaman */}
+    <div className="mx-auto w-full max-w-3xl space-y-5 px-4 pb-10 pt-6 sm:px-6">
+      {/* Kepala halaman — tombol kembali global ada di header aplikasi */}
       <div className="flex items-center justify-between gap-3">
-        <button
-          onClick={() => navigate("/riwayat")}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:border-unp hover:text-unp"
-          aria-label="Kembali"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <div className="text-center">
-          <h1 className="font-extrabold">{order.code}</h1>
+        <div className="min-w-0">
+          <h1 className="truncate font-extrabold">{order.code}</h1>
           <p className="text-xs text-muted-foreground">{dateId(order.createdAt)} • {timeId(order.createdAt)} WIB</p>
         </div>
         <StatusBadge status={order.status} />
@@ -179,7 +147,7 @@ export function OrderDetailView({ code }: { code: string }) {
 
       {/* Peta rute live (OpenStreetMap) + posisi driver */}
       {pickupPos && destPos ? (
-        <RouteMap pickup={pickupPos} dest={destPos} driver={driverPos} route={routeLine} />
+        <RouteMap pickup={pickupPos} dest={destPos} driver={driverPos} route={route?.line || null} />
       ) : (
         <div className="flex items-center gap-3.5 rounded-3xl border border-border bg-gradient-to-br from-unp-soft/70 to-gold-soft/30 p-5">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-unp shadow-sm">
@@ -234,11 +202,13 @@ export function OrderDetailView({ code }: { code: string }) {
               </div>
             </div>
             <a
-              href={`tel:${order.driver.phone}`}
+              href={waLink(order.driver.phone, `Halo, saya ${order.user?.name || "penumpang"} — penumpang KOMAH ${order.code}.`) || undefined}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex h-11 w-11 items-center justify-center rounded-full bg-unp text-white shadow-md transition-transform hover:scale-105"
-              aria-label={`Telepon ${order.driver.name}`}
+              aria-label={`Chat WhatsApp ${order.driver.name}`}
             >
-              <Phone size={18} />
+              <MessageCircle size={18} />
             </a>
           </div>
           <p className="mt-3 flex items-center gap-1.5 rounded-xl bg-unp-soft px-3 py-2 text-[11px] font-semibold text-unp-dark">

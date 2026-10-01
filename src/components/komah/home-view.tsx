@@ -9,8 +9,8 @@ import {
   Repeat2,
   UtensilsCrossed,
 } from "lucide-react";
-import { navigate, rupiah, stashPrefill, STATUS_META, timeId, useApi, useAuth } from "./lib";
-import { StatusBadge, TypeIcon, UserAvatar } from "./bits";
+import { apiCall, navigate, rupiah, stashPrefill, STATUS_META, timeId, useApi, useAuth } from "./lib";
+import { StatusBadge, TypeIcon } from "./bits";
 import type { OrderT } from "@/lib/types";
 
 const SERVICES = [
@@ -20,7 +20,7 @@ const SERVICES = [
 ] as const;
 
 export function HomeView() {
-  const { me, addresses, activeOrder } = useAuth();
+  const { me, activeOrder, refresh } = useAuth();
   const { data: orderData } = useApi<{ orders: OrderT[] }>("/api/orders");
   const orders = orderData?.orders || [];
 
@@ -29,6 +29,10 @@ export function HomeView() {
 
   // Pesanan terakhir yang bukan pesanan aktif — calon kandidat "Pesan lagi".
   const lastOrder = activeOrder ? orders.find((o) => o.id !== activeOrder.id) || null : orders[0] || null;
+
+  // Driver terverifikasi di mode penumpang — tawaran mulai menerima pesanan.
+  const showDriverCta =
+    me?.role === "DRIVER" && me?.verifyStatus === "VERIFIED" && !activeOrder;
 
   function repeatOrder(o: OrderT) {
     stashPrefill({
@@ -43,20 +47,23 @@ export function HomeView() {
     navigate(`/pesan?type=${o.type}`);
   }
 
+  async function startDriving() {
+    const { ok, data } = await apiCall("/api/profile", "PATCH", { appMode: "DRIVER" });
+    if (!ok) {
+      navigate("/mode-driver");
+      return;
+    }
+    await refresh();
+    navigate("/mode-driver");
+  }
+
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
-      {/* Sapaan ringkas — avatar menuju profil */}
-      <button
-        onClick={() => navigate("/profil")}
-        className="flex w-full items-center gap-3.5 rounded-2xl text-left transition-opacity active:opacity-80"
-      >
-        <UserAvatar name={me?.name || "Pengguna"} url={me?.avatarUrl} size={46} />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm text-muted-foreground">{greet},</p>
-          <h1 className="truncate text-xl font-extrabold leading-tight">{me?.name}</h1>
-        </div>
-        <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
-      </button>
+    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
+      {/* Sapaan ringkas — teks saja, tanpa tombol (profil ada di tab & menu avatar) */}
+      <div>
+        <p className="text-sm text-muted-foreground">{greet},</p>
+        <h1 className="text-xl font-extrabold leading-tight sm:text-2xl">{me?.name}</h1>
+      </div>
 
       {/* Pesanan aktif — info paling penting, selalu di atas */}
       {activeOrder && (
@@ -121,30 +128,6 @@ export function HomeView() {
         </div>
       </section>
 
-      {/* Pintasan alamat tersimpan — sekali tap, titik jemput terisi */}
-      {addresses.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Pintasan</h2>
-          <div className="flex flex-wrap gap-2.5">
-            {addresses.map((a) => (
-              <button
-                key={a.id}
-                onClick={() => {
-                  stashPrefill({ pickup: a.location, pickupDetail: a.detail || "" });
-                  navigate("/pesan");
-                }}
-                className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-bold shadow-sm transition-all hover:border-unp/50 hover:shadow-md"
-                title={`${a.label} — dipakai sebagai titik jemput`}
-              >
-                <MapPin size={14} className="shrink-0 text-unp" />
-                <span className="max-w-44 truncate">{a.location.name}</span>
-                <span className="text-[11px] font-semibold text-muted-foreground">{a.label}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Pesanan terakhir + aksi ulangi */}
       {lastOrder && (
         <section>
@@ -183,6 +166,23 @@ export function HomeView() {
             </button>
           </div>
         </section>
+      )}
+
+      {/* Driver di mode penumpang — tawaran mulai menerima pesanan */}
+      {showDriverCta && (
+        <button
+          onClick={startDriving}
+          className="flex w-full items-center gap-3.5 rounded-3xl border-2 border-dashed border-unp/40 bg-unp-soft/30 p-5 text-left transition-all hover:border-unp hover:bg-unp-soft/50"
+        >
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-unp to-unp-dark text-white shadow-md">
+            <Bike size={22} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-extrabold text-unp-deep">Punya waktu luang?</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">Mulai terima pesanan di dashboard driver.</span>
+          </span>
+          <ChevronRight size={18} className="shrink-0 text-unp" />
+        </button>
       )}
 
       {/* Satu baris info fungsi — bukan blok promosi */}

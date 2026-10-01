@@ -1,18 +1,21 @@
 "use client";
 
+// PWA — daftarkan service worker (cache shell agar tetap terbuka saat koneksi
+// lambat). Aman dipanggil dua kali; hanya berjalan di produksi browser.
+
 import { useEffect } from "react";
 
-/** Mendaftarkan service worker (PWA) setelah aplikasi siap.
- *  Gagal silent — PWA bersifat progresif, bukan syarat jalan. */
 export function PwaRegistrar() {
   useEffect(() => {
-    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-    const t = setTimeout(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    const onLoad = () => {
       navigator.serviceWorker.register("/sw.js").catch(() => {
-        // Diabaikan: lingkungan tanpa SW (mis. http non-localhost) tetap berjalan normal.
+        // SW gagal terpasang (mis. mode incognito) — aplikasi tetap jalan normal.
       });
-    }, 1200);
-    return () => clearTimeout(t);
+    };
+    if (document.readyState === "complete") onLoad();
+    else window.addEventListener("load", onLoad);
+    return () => window.removeEventListener("load", onLoad);
   }, []);
   return null;
 }

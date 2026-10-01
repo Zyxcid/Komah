@@ -23,13 +23,14 @@ export function toSafeUser(u: {
   vehiclePlate: string | null;
   vehicleType: string | null;
   verifyStatus: string | null;
+  appMode?: string;
+  ktmUrl?: string | null;
   isOnline: boolean;
   rating: number;
   ratingCount: number;
   totalTrips: number;
   totalEarnings: number;
   passwordHash?: string;
-  ktmUrl?: string | null;
   [key: string]: unknown;
 }) {
   return {
@@ -42,7 +43,9 @@ export function toSafeUser(u: {
     avatarUrl: u.avatarUrl,
     vehiclePlate: u.vehiclePlate,
     vehicleType: u.vehicleType,
+    ktmUrl: u.ktmUrl ?? null,
     verifyStatus: u.verifyStatus,
+    appMode: u.appMode === "DRIVER" ? "DRIVER" : "PENUMPANG",
     isOnline: u.isOnline,
     rating: u.rating,
     ratingCount: u.ratingCount,

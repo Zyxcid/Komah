@@ -13,7 +13,9 @@ export type Route =
   | { name: "order-detail"; code: string }
   | { name: "history" }
   | { name: "driver-mode" }
+  | { name: "admin-home" }
   | { name: "admin" }
+  | { name: "admin-locations" }
   | { name: "profile" };
 
 export function parseHash(): { route: Route; query: URLSearchParams } {
@@ -44,8 +46,12 @@ export function parseHash(): { route: Route; query: URLSearchParams } {
       return { route: { name: "history" }, query };
     case "mode-driver":
       return { route: { name: "driver-mode" }, query };
+    case "admin":
+      return { route: { name: "admin-home" }, query };
     case "verifikasi":
       return { route: { name: "admin" }, query };
+    case "kelola-lokasi":
+      return { route: { name: "admin-locations" }, query };
     case "profil":
       return { route: { name: "profile" }, query };
     default:
@@ -195,6 +201,45 @@ export function clearPrefill() {
   }
 }
 
+// ===================== Mode aplikasi (penumpang / driver) =====================
+// Satu akun driver bisa berperan sebagai penumpang dan sebaliknya;
+// appMode hanya menentukan halaman pembuka aplikasi.
+
+export function effectiveMode(me: MeT | null): "PENUMPANG" | "DRIVER" {
+  if (!me || me.role !== "DRIVER") return "PENUMPANG";
+  // Driver yang sedang mengantar selalu dibuka di mode driver (fokus perjalanan).
+  if (me.activeDrive) return "DRIVER";
+  return me.appMode === "DRIVER" ? "DRIVER" : "PENUMPANG";
+}
+
+/** Halaman pembuka sesuai mode (admin tetap ke panelnya). */
+export function modeHome(me: MeT | null): string {
+  if (!me) return "/masuk";
+  if (me.role === "ADMIN") return "/admin";
+  if (me.role === "DRIVER") return effectiveMode(me) === "DRIVER" ? "/mode-driver" : "/beranda";
+  return "/beranda";
+}
+
+/** Nama route beranda sesuai mode — untuk menandai tab aktif & tombol kembali. */
+export function homeRouteName(me: MeT | null): string {
+  if (!me) return "landing";
+  if (me.role === "ADMIN") return "admin-home";
+  if (me.role === "DRIVER") return effectiveMode(me) === "DRIVER" ? "driver-mode" : "home";
+  return "home";
+}
+
+// ===================== Tautan chat WhatsApp =====================
+// Tombol "telepon" di aplikasi membuka chat WA (bukan dialer) karena kolom
+// nomor HP di KOMAH memang berlabel "No. HP (WhatsApp)". Nomor dinormalkan
+// ke format 62xxx; pesan opsional terisi otomatis (mis. kode pesanan).
+export function waLink(phone: string | null | undefined, message?: string) {
+  if (!phone) return null;
+  const digits = phone.replace(/[^0-9]/g, "");
+  const target = digits.startsWith("62") ? digits : digits.replace(/^0/, "62");
+  if (target.length < 10 || target.length > 15) return null;
+  return `https://wa.me/${target}${message ? `?text=${encodeURIComponent(message)}` : ""}`;
+}
+
 // ===================== Fetch dengan polling =====================
 export function useApi<T>(url: string | null, opts?: { interval?: number; enabled?: boolean }) {
   const interval = opts?.interval;
@@ -289,9 +334,37 @@ export function initials(name: string) {
     .join("");
 }
 
+/** Durasi tempuh (detik OSRM) → "12 mnt" / "1 jam 5 mnt". */
+export function fmtDur(seconds: number) {
+  if (!seconds || seconds <= 0) return null;
+  const m = Math.round(seconds / 60);
+  if (m < 60) return `${m} mnt`;
+  const h = Math.floor(m / 60);
+  return `${h} jam ${m % 60} mnt`;
+}
+
+/** Jarak (meter OSRM) → "2,4 km". */
+export function fmtKm(meters: number) {
+  if (!meters || meters <= 0) return null;
+  return `${(meters / 1000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} km`;
+}
+
+/** Apakah penumpang menggeser pin jemput/tujuan dari koordinat lokasi asli. */
+export function pinMoved(o: {
+  pickupLat: number | null;
+  destLat: number | null;
+  pickupLocation: { lat: number | null };
+  destLocation: { lat: number | null };
+}) {
+  return (
+    (o.pickupLat != null && o.pickupLocation.lat != null && o.pickupLat !== o.pickupLocation.lat) ||
+    (o.destLat != null && o.destLocation.lat != null && o.destLat !== o.destLocation.lat)
+  );
+}
+
 export async function apiCall<T = unknown>(
   url: string,
-  method: "POST" | "PATCH" | "DELETE",
+  method: "POST" | "PATCH" | "PUT" | "DELETE",
   body?: unknown
 ): Promise<{ ok: boolean; data: T & { error?: string; message?: string } }> {
   const res = await fetch(url, {

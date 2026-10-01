@@ -67,7 +67,7 @@ export function LoginView() {
   async function doLogin(em: string, pw: string) {
     setBusy(true);
     setError(null);
-    const { ok, data } = await apiCall<{ role: Role }>('/api/auth/login', 'POST', { email: em, password: pw });
+    const { ok, data } = await apiCall<{ role: Role; appMode?: "PENUMPANG" | "DRIVER"; activeDrive?: boolean }>('/api/auth/login', 'POST', { email: em, password: pw });
     setBusy(false);
     if (!ok) {
       setError(data.error || "Gagal masuk.");
@@ -75,9 +75,12 @@ export function LoginView() {
     }
     await refresh();
     toast({ title: "Berhasil masuk", description: "Selamat datang kembali di KOMAH!" });
-    if (data.role === "ADMIN") navigate("/verifikasi");
-    else if (data.role === "DRIVER") navigate("/mode-driver");
-    else navigate("/beranda");
+    // Halaman pembuka mengikuti mode tersimpan (driver mid-trip selalu ke dashboard).
+    if (data.role === "ADMIN") navigate("/admin");
+    else if (data.role === "DRIVER") {
+      if (data.activeDrive || data.appMode === "DRIVER") navigate("/mode-driver");
+      else navigate("/beranda");
+    } else navigate("/beranda");
   }
 
   const demos: Array<{ label: string; email: string; desc: string }> = [
@@ -355,10 +358,8 @@ export function RegisterView({ initialRole }: { initialRole?: "USER" | "DRIVER" 
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        Sudah punya akun?{" "}
-        <button onClick={() => navigate("/masuk")} className="font-bold text-unp hover:underline">
-          Masuk di sini
-        </button>
+        Sudah punya akun penumpang? Tak perlu mendaftar ulang —{" "}
+        <span className="font-semibold text-foreground">daftar sebagai driver kapan saja lewat menu Profil.</span>
       </p>
     </AuthLayout>
   );

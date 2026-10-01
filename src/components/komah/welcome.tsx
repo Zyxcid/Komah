@@ -28,9 +28,6 @@ export function Welcome() {
           <h1 className="mt-6 text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
             Ojek &amp; titip antar khusus civitas UNP
           </h1>
-          <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
-            Masuk untuk mulai memesan — tarif tampil sejak awal, bayar tunai saat sampai.
-          </p>
 
           <div className="mt-8 grid grid-cols-2 gap-3">
             <Button
@@ -47,13 +44,6 @@ export function Welcome() {
               <UserPlus size={17} /> Daftar
             </Button>
           </div>
-
-          <p className="mt-6 text-sm text-muted-foreground">
-            Ingin cari penghasilan di sela kuliah?{" "}
-            <button onClick={() => navigate("/daftar?role=DRIVER")} className="font-bold text-unp hover:underline">
-              Daftar jadi driver
-            </button>
-          </p>
 
           <p className="mt-10 text-center text-[11px] leading-relaxed text-muted-foreground">
             Driver mahasiswa terverifikasi KTM &middot; Tarif tetap berbasis zona &middot; Pembayaran tunai

@@ -24,7 +24,8 @@ export interface RouteMapProps {
 
 export interface PinMapProps {
   center: LatLng;
-  value: LatLng;
+  /** Posisi pin; null = belum ada pin (peta siap diketuk). */
+  value: LatLng | null;
   onChange?: (p: LatLng) => void;
 }
 
@@ -140,20 +141,22 @@ export function PinMapCore({ center, value, onChange }: PinMapProps) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Marker
-        position={[value.lat, value.lng]}
-        icon={pickupIcon}
-        draggable
-        autoPan
-        eventHandlers={{
-          dragend: (e) => {
-            const p = (e.target as L.Marker).getLatLng();
-            onChange?.({ lat: p.lat, lng: p.lng });
-          },
-        }}
-      />
+      {value && (
+        <Marker
+          position={[value.lat, value.lng]}
+          icon={pickupIcon}
+          draggable
+          autoPan
+          eventHandlers={{
+            dragend: (e) => {
+              const p = (e.target as L.Marker).getLatLng();
+              onChange?.({ lat: p.lat, lng: p.lng });
+            },
+          }}
+        />
+      )}
       <ClickToPick onPick={(p) => onChange?.(p)} />
-      <FitBounds points={[value]} />
+      <FitBounds points={[value || center]} />
       <ResizeOnMount />
     </MapContainer>
   );

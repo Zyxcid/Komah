@@ -8,10 +8,7 @@ import {
   Check,
   Inbox,
   Loader2,
-  Navigation,
-  Package,
-  Phone,
-  Radar,
+  MapPin,
   Star,
   TrendingUp,
   Wallet,
@@ -22,15 +19,17 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiCall, navigate, rupiah, timeId, useApi, useAuth } from "./lib";
 import { TypeIcon, UserAvatar } from "./bits";
-import type { DriverDashboardT } from "@/lib/types";
+import { DriverActiveOrder } from "./driver-active-order";
+import { DriverOrderPreview } from "./driver-order-preview";
+import type { DriverDashboardT, OrderT } from "@/lib/types";
 
 export function DriverDashboardView() {
   const { toast } = useToast();
   const { me, patchMe, refresh } = useAuth();
   const { data, refetch, loading } = useApi<DriverDashboardT>("/api/orders?scope=driver", { interval: 4000 });
   const [busyId, setBusyId] = useState<string | null>(null);
-  // "gps" = kirim posisi asli, "demo" = GPS tidak tersedia → simulasi perjalanan.
-  const [posMode, setPosMode] = useState<"gps" | "demo" | null>(null);
+  const [previewOrder, setPreviewOrder] = useState<OrderT | null>(null);
+  const [acceptBusy, setAcceptBusy] = useState(false);
 
   const stats = data?.stats;
   const verified = stats?.verifyStatus === "VERIFIED";
@@ -38,9 +37,9 @@ export function DriverDashboardView() {
   const activeOrder = data?.active?.[0];
 
   // ===== Pengirim posisi untuk pelacakan live =====
-  // Selama ada pesanan aktif: coba GPS browser; jika ditolak/gagal,
+  // Selama ada pesanan aktif: kirim GPS browser bila tersedia; jika ditolak,
   // kirim posisi simulasi (interpolasi rute) agar penumpang tetap melihat
-  // pergerakan — ditandai "posisi demo" di dashboard ini.
+  // pergerakan. Berjalan senyap — driver fokus berkendara.
   const posKey = activeOrder ? `${activeOrder.id}:${activeOrder.status}` : null;
   useEffect(() => {
     if (!posKey || !activeOrder) return;
@@ -89,21 +88,15 @@ export function DriverDashboardView() {
           if (cancelled) return;
           if (pos.coords.accuracy <= 500) {
             mode = "gps";
-            setPosMode("gps");
             send(pos.coords.latitude, pos.coords.longitude);
           }
         },
         () => {
           mode = "demo";
-          setPosMode("demo");
           simulate();
         },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
       );
-    } else {
-      setTimeout(() => {
-        if (!cancelled) setPosMode("demo");
-      }, 0);
     }
 
     const tick = () => {
@@ -149,6 +142,27 @@ export function DriverDashboardView() {
     refresh();
   }
 
+  async function acceptOrder(order: OrderT) {
+    setAcceptBusy(true);
+    const { ok, data: res } = await apiCall(`/api/orders/${order.id}`, "PATCH", { action: "accept" });
+    setAcceptBusy(false);
+    if (!ok) {
+      toast({ title: "Gagal", description: res.error, variant: "destructive" });
+      refetch();
+      return;
+    }
+    setPreviewOrder(null);
+    toast({ title: "Pesanan diterima", description: res.message });
+    refetch();
+    refresh();
+  }
+
+  // ===== MODE FOKUS: sedang mengantar → hanya pesanan aktif =====
+  if (activeOrder) {
+    return <DriverActiveOrder order={activeOrder} onAct={act} busy={busyId} />;
+  }
+
+  // ===== Idle: statistik, toggle online, pesanan masuk =====
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
       {/* Kepala + toggle online */}
@@ -190,7 +204,7 @@ export function DriverDashboardView() {
         </div>
       )}
 
-      {/* Statistik */}
+      {/* Statistik (hanya saat idle) */}
       <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card p-4">
           <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -221,109 +235,7 @@ export function DriverDashboardView() {
         </div>
       </div>
 
-      {/* Pesanan aktif */}
-      <section>
-        <h2 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Pesanan Sedang Dikerjakan</h2>
-        {loading ? (
-          <div className="h-32 animate-pulse rounded-2xl bg-muted" />
-        ) : (data?.active || []).length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-7 text-center text-sm text-muted-foreground">
-            Belum ada pesanan aktif. Ambil pesanan baru di bawah!
-          </div>
-        ) : (
-          data!.active.map((o) => (
-            <div key={o.id} className="rounded-3xl border-2 border-unp/40 bg-gradient-to-br from-unp-soft/60 to-card p-5 shadow-md">
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-unp px-3 py-1 text-xs font-extrabold text-white">
-                  <TypeIcon type={o.type} size={13} className="text-white" /> {o.code}
-                </span>
-                <div className="flex items-center gap-2">
-                  {posMode && (
-                    <span
-                      className={cn(
-                        "hidden items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold sm:inline-flex",
-                        posMode === "gps" ? "bg-unp/10 text-unp-dark" : "bg-gold-soft text-gold-dark"
-                      )}
-                      title={posMode === "gps" ? "Mengirim posisi GPS asli" : "GPS tidak tersedia — mengirim posisi simulasi"}
-                    >
-                      <Radar size={11} /> {posMode === "gps" ? "GPS live" : "Posisi demo"}
-                    </span>
-                  )}
-                  <span className="text-lg font-extrabold text-unp">{rupiah(o.fare)}</span>
-                </div>
-              </div>
-
-              <div className="mt-4 flex gap-3.5">
-                <div className="flex flex-col items-center self-stretch pt-1">
-                  <span className="h-2.5 w-2.5 rounded-full bg-unp" />
-                  <span className="my-1 w-0.5 flex-1 bg-gradient-to-b from-unp to-gold" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-gold" />
-                </div>
-                <div className="min-w-0 flex-1 space-y-2.5 text-sm">
-                  <div>
-                    <p className="font-bold">{o.pickupLocation.name}</p>
-                    {o.pickupDetail && <p className="text-xs text-muted-foreground">{o.pickupDetail}</p>}
-                  </div>
-                  <div>
-                    <p className="font-bold">{o.destLocation.name}</p>
-                    {o.destDetail && <p className="text-xs text-muted-foreground">{o.destDetail}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {o.itemNote && (
-                <p className="mt-3 rounded-xl bg-gold-soft/60 px-3.5 py-2.5 text-xs font-semibold text-gold-dark">
-                  {o.type === "MAKANAN" ? "Makanan" : "Barang"}: {o.itemNote}
-                </p>
-              )}
-              {o.passengerNote && (
-                <p className="mt-2 rounded-xl bg-muted px-3.5 py-2.5 text-xs text-muted-foreground">Catatan: {o.passengerNote}</p>
-              )}
-
-              {o.user && (
-                <div className="mt-4 flex items-center justify-between gap-3 border-t border-unp/15 pt-4">
-                  <div className="flex items-center gap-2.5">
-                    <UserAvatar name={o.user.name} url={o.user.avatarUrl} size={36} />
-                    <div>
-                      <p className="text-sm font-extrabold">{o.user.name}</p>
-                      <p className="text-[11px] text-muted-foreground">Penumpang terverifikasi civitas</p>
-                    </div>
-                  </div>
-                  <a
-                    href={`tel:${o.user.phone}`}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-unp text-white shadow-md transition-transform hover:scale-105"
-                    aria-label={`Telepon ${o.user.name}`}
-                  >
-                    <Phone size={16} />
-                  </a>
-                </div>
-              )}
-
-              {o.status === "DIKONFIRMASI" ? (
-                <Button
-                  onClick={() => act(o.id, "start")}
-                  disabled={busyId === o.id + "start"}
-                  className="mt-4 h-12 w-full gap-2 bg-unp font-extrabold hover:bg-unp-dark"
-                >
-                  {busyId === o.id + "start" ? <Loader2 size={16} className="animate-spin" /> : <Navigation size={16} />}
-                  Penumpang Sudah Naik — Mulai Perjalanan
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => act(o.id, "complete")}
-                  disabled={busyId === o.id + "complete"}
-                  className="mt-4 h-12 w-full gap-2 bg-gold font-extrabold text-unp-deep hover:bg-gold-dark hover:text-white"
-                >
-                  {busyId === o.id + "complete" ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                  Selesaikan Pesanan (+{rupiah(o.fare - 1000)})
-                </Button>
-              )}
-            </div>
-          ))
-        )}
-      </section>
-
-      {/* Pesanan masuk */}
+      {/* Pesanan masuk — kartu bisa diketuk untuk melihat titik di peta */}
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Pesanan Masuk</h2>
@@ -353,50 +265,75 @@ export function DriverDashboardView() {
           <div className="space-y-3">
             {data!.incoming.map((o) => (
               <div key={o.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-unp-soft px-2.5 py-1 text-[11px] font-extrabold text-unp-dark">
-                    <TypeIcon type={o.type} size={12} /> {o.code} • {timeId(o.createdAt)} WIB
-                  </span>
-                  <span className="font-extrabold text-unp">{rupiah(o.fare)}</span>
-                </div>
-                <p className="mt-3 truncate text-sm font-bold">
-                  {o.pickupLocation.name} → {o.destLocation.name}
-                </p>
-                {o.itemNote && <p className="mt-1 truncate text-xs text-muted-foreground">{o.itemNote}</p>}
-                <div className="mt-3.5 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPreviewOrder(o)}
+                  className="-m-4 w-full cursor-pointer rounded-2xl p-4 text-left transition-colors hover:bg-unp-soft/40"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-unp-soft px-2.5 py-1 text-[11px] font-extrabold text-unp-dark">
+                      <TypeIcon type={o.type} size={12} /> {o.code} • {timeId(o.createdAt)} WIB
+                    </span>
+                    <span className="font-extrabold text-unp">{rupiah(o.fare)}</span>
+                  </div>
+                  <p className="mt-3 truncate text-sm font-bold">
+                    {o.pickupLocation.name} → {o.destLocation.name}
+                  </p>
+                  {o.itemNote && <p className="mt-1 truncate text-xs text-muted-foreground">{o.itemNote}</p>}
+                  <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-unp">
+                    <MapPin size={11} /> Ketuk untuk lihat titik di peta
+                  </p>
                   {o.user && (
-                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="mt-2.5 flex items-center gap-2 text-xs text-muted-foreground">
                       <UserAvatar name={o.user.name} url={o.user.avatarUrl} size={26} />
                       {o.user.name}
                     </span>
                   )}
-                  <Button
-                    onClick={() => act(o.id, "accept")}
-                    disabled={busyId === o.id + "accept"}
-                    size="sm"
-                    className="gap-1.5 bg-unp font-extrabold hover:bg-unp-dark"
-                  >
-                    {busyId === o.id + "accept" ? <Loader2 size={14} className="animate-spin" /> : <BadgeCheck size={14} />}
-                    Terima (+{rupiah(o.fare - 1000)})
-                  </Button>
-                </div>
+                </button>
+                <Button
+                  onClick={() => acceptOrder(o)}
+                  disabled={acceptBusy}
+                  size="sm"
+                  className="mt-3 w-full gap-1.5 bg-unp font-extrabold hover:bg-unp-dark"
+                >
+                  {acceptBusy ? <Loader2 size={14} className="animate-spin" /> : <BadgeCheck size={14} />}
+                  Terima (+{rupiah(o.fare - 1000)})
+                </Button>
               </div>
             ))}
           </div>
         )}
       </section>
 
-      {/* Tips */}
-      <div className="rounded-3xl bg-gradient-to-br from-unp-dark to-unp-deep p-5 text-white">
-        <p className="flex items-center gap-2 font-extrabold">
-          <Package size={17} className="text-gold" /> Tips meningkatkan pendapatan
-        </p>
-        <ul className="mt-3 space-y-2 text-sm leading-relaxed text-green-50/90">
-          <li className="flex gap-2"><Check size={15} className="mt-0.5 shrink-0 text-gold" /> Online pada jam sibuk: 07.00–09.00, 12.00–13.00, dan 16.00–18.00 WIB.</li>
-          <li className="flex gap-2"><Check size={15} className="mt-0.5 shrink-0 text-gold" /> Jaga rating di atas 4.5 — penumpang lebih percaya driver bintang tinggi.</li>
-          <li className="flex gap-2"><Check size={15} className="mt-0.5 shrink-0 text-gold" /> Kenali jalan pintas antar fakultas dan area kos untuk waktu tempuh lebih cepat.</li>
-        </ul>
-      </div>
+      {/* Pesan sebagai penumpang — simpan mode agar aplikasi terbuka di beranda */}
+      <Button
+        onClick={async () => {
+          const { ok, data: res } = await apiCall("/api/profile", "PATCH", { appMode: "PENUMPANG" });
+          if (!ok) {
+            toast({ title: "Gagal pindah mode", description: res.error, variant: "destructive" });
+            return;
+          }
+          await refresh();
+          navigate("/beranda");
+          toast({
+            title: "Beralih ke Mode Penumpang",
+            description: "Aplikasi juga akan membuka mode ini saat kamu masuk nanti.",
+          });
+        }}
+        variant="outline"
+        className="h-12 w-full gap-2 border-2 font-bold"
+      >
+        <Check size={16} /> Pesan sebagai penumpang
+      </Button>
+
+      {/* Pratinjau pesanan masuk (peta + titik penumpang) */}
+      <DriverOrderPreview
+        order={previewOrder}
+        open={!!previewOrder}
+        onOpenChange={(o) => !o && setPreviewOrder(null)}
+        onAccept={acceptOrder}
+        busy={acceptBusy}
+      />
     </div>
   );
 }

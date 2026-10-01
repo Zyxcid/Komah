@@ -79,7 +79,12 @@ export interface MeT {
   avatarUrl: string | null;
   vehiclePlate: string | null;
   vehicleType: string | null;
+  ktmUrl: string | null;
   verifyStatus: "PENDING" | "VERIFIED" | "REJECTED" | null;
+  /** Mode pembuka aplikasi: PENUMPANG | DRIVER. */
+  appMode: "PENUMPANG" | "DRIVER";
+  /** true bila driver sedang mengantar (pesanan DIKONFIRMASI/BERJALAN) — kunci pindah mode. */
+  activeDrive: boolean;
   isOnline: boolean;
   rating: number;
   ratingCount: number;

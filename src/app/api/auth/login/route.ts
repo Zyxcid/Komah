@@ -14,8 +14,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email atau kata sandi salah." }, { status: 401 });
     }
 
+    // Apakah driver sedang mengantar? (menentukan halaman pembuka & kunci mode)
+    const activeDrive = await db.order.findFirst({
+      where: { driverId: user.id, status: { in: ["DIKONFIRMASI", "BERJALAN"] } },
+      select: { id: true },
+    });
+
     const token = signSession({ uid: user.id, role: user.role, exp: Date.now() + SESSION_MAX_AGE * 1000 });
-    const res = NextResponse.json({ ok: true, role: user.role });
+    const res = NextResponse.json({
+      ok: true,
+      role: user.role,
+      appMode: user.appMode === "DRIVER" ? "DRIVER" : "PENUMPANG",
+      activeDrive: !!activeDrive,
+    });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       sameSite: "lax",

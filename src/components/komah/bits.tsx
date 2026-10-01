@@ -122,6 +122,43 @@ export function VerifiedBadge({ className }: { className?: string }) {
   );
 }
 
+/** Baris titik jemput/tujuan dengan titik warna, patokan, dan lencana "pin digeser". */
+export function PointRow({
+  color,
+  label,
+  name,
+  detail,
+  moved,
+}: {
+  color: string;
+  label: string;
+  name: string;
+  detail?: string | null;
+  moved?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span
+        className="mt-1.5 h-3.5 w-3.5 shrink-0 rounded-full border-[3px] border-white shadow-md"
+        style={{ backgroundColor: color }}
+        aria-hidden
+      />
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          {label}
+          {moved && (
+            <span className="rounded-full bg-gold-soft px-1.5 py-0.5 text-[10px] font-bold normal-case tracking-normal text-gold-dark">
+              pin digeser
+            </span>
+          )}
+        </p>
+        <p className="font-bold leading-snug">{name}</p>
+        {detail && <p className="text-sm leading-snug text-muted-foreground">{detail}</p>}
+      </div>
+    </div>
+  );
+}
+
 export function OnlineDot({ online }: { online: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-semibold">

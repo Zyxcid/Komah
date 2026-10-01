@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { calcFare } from "@/lib/fare";
+import { getBaseFare } from "@/lib/settings";
 import { sendWA, waNewOrderForDriver } from "@/lib/wa";
 import crypto from "crypto";
 
@@ -73,9 +74,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Silakan masuk terlebih dahulu." }, { status: 401 });
-  if (user.role === "DRIVER" && user.verifyStatus !== "VERIFIED") {
-    return NextResponse.json({ error: "Akun driver Anda belum terverifikasi." }, { status: 403 });
-  }
 
   try {
     const body = await req.json();
@@ -106,14 +104,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Lokasi tidak ditemukan." }, { status: 400 });
     }
 
-    const existingActive = await db.order.findFirst({
-      where: { userId: user.id, status: { in: ACTIVE as unknown as string[] } },
-    });
+    // Guard anti-konflik: satu pesanan penumpang aktif pada satu waktu,
+    // dan driver yang sedang mengantar tidak boleh memesan perjalanan.
+    const [existingActive, driving] = await Promise.all([
+      db.order.findFirst({
+        where: { userId: user.id, status: { in: ACTIVE as unknown as string[] } },
+      }),
+      db.order.findFirst({
+        where: { driverId: user.id, status: { in: ["DIKONFIRMASI", "BERJALAN"] } },
+        select: { id: true },
+      }),
+    ]);
+    if (driving) {
+      return NextResponse.json({ error: "Anda sedang mengantar pesanan. Selesaikan dulu." }, { status: 409 });
+    }
     if (existingActive) {
       return NextResponse.json({ error: "Anda masih memiliki pesanan aktif. Selesaikan atau batalkan dulu." }, { status: 409 });
     }
 
-    const fare = calcFare(pickup, dest);
+    const baseFare = await getBaseFare();
+    const fare = calcFare(pickup, dest, baseFare);
     const order = await db.order.create({
       data: {
         code: await generateCode(),

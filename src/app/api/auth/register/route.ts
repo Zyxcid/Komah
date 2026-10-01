@@ -39,6 +39,8 @@ export async function POST(req: NextRequest) {
         phone: phone.trim(),
         nim: nim.trim(),
         role: isDriver ? "DRIVER" : "USER",
+        // Daftar langsung sebagai driver → buka aplikasi di dashboard driver.
+        appMode: isDriver ? "DRIVER" : "PENUMPANG",
         vehiclePlate: isDriver ? vehiclePlate.trim() : null,
         vehicleType: isDriver ? vehicleType.trim() : null,
         ktmUrl: isDriver ? ktmUrl : null,

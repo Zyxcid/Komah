@@ -50,7 +50,7 @@ export function HistoryView() {
             title="Belum ada pesanan"
             desc="Pesanan ojek dan antar barangmu akan tercatat di sini. Yuk, coba pesan pertamamu!"
             action={
-              <Button onClick={() => navigate("/pesan")} className="gap-2 bg-unp font-bold hover:bg-unp-dark">
+              <Button onClick={() => navigate("/pesan?type=OJEK")} className="gap-2 bg-unp font-bold hover:bg-unp-dark">
                 Pesan Sekarang
               </Button>
             }

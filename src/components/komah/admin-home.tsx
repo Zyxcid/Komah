@@ -1,180 +1,118 @@
 "use client";
 
-import {
-  BadgeCheck,
-  ChevronRight,
-  ClipboardList,
-  MapPinned,
-  ShieldCheck,
-  UserCheck,
-} from "lucide-react";
-import { navigate, rupiah, useApi, useAuth } from "./lib";
-import { UserAvatar } from "./bits";
-import type { LocationT } from "@/lib/types";
+// Beranda admin — hero section berisi pintasan utama: verifikasi driver &
+// kelola lokasi (plus ringkasan cepat). Kedua panel dibuka lewat kartu di
+// sini, bukan dari dropdown profil.
 
-interface PendingDriver {
-  id: string;
-  name: string;
-  vehicleType: string;
-  vehiclePlate: string;
-}
+import { Bike, ChevronRight, ClipboardList, MapPinned, ShieldCheck, Star } from "lucide-react";
+import { navigate, useApi, useAuth } from "./lib";
 
-interface VerifyData {
-  pending: PendingDriver[];
+interface HomeStats {
+  pending: Array<{ id: string }>;
   verifiedCount: number;
 }
 
 export function AdminHomeView() {
   const { me } = useAuth();
-  const { data: verifyData } = useApi<VerifyData>("/api/admin/verifications");
-  const { data: locData } = useApi<{ locations: LocationT[]; baseFare: number }>("/api/admin/locations");
+  const { data: verifData } = useApi<HomeStats>("/api/admin/verifications", { interval: 15000 });
+  const { data: locData } = useApi<{ locations: unknown[] }>("/api/admin/locations", { interval: 30000 });
 
-  const pending = verifyData?.pending || [];
-  const verifiedCount = verifyData?.verifiedCount || 0;
-  const locations = locData?.locations || [];
+  const pendingCount = verifData?.pending?.length ?? 0;
+  const verifiedCount = verifData?.verifiedCount ?? 0;
+  const locationCount = locData?.locations?.length ?? 0;
 
   const hour = new Date().getHours();
   const greet = hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 18 ? "Selamat sore" : "Selamat malam";
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
-      {/* Hero — ringkasan panel admin + aksi utama */}
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-unp to-unp-dark p-5 text-white shadow-lg sm:p-6">
-        <div className="flex items-center gap-3.5">
-          <UserAvatar name={me?.name || "Admin"} url={me?.avatarUrl} size={48} />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wider text-white/70">{greet}, Admin</p>
-            <h1 className="truncate text-xl font-extrabold leading-tight">{me?.name}</h1>
-          </div>
-          <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-bold">
-            <ShieldCheck size={13} /> Panel KOMAH
+    <div className="mx-auto w-full max-w-4xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
+      {/* Hero */}
+      <div className="rounded-3xl bg-gradient-to-br from-unp to-unp-deep p-6 text-white shadow-lg shadow-unp/25">
+        <div className="flex items-center gap-4">
+          <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+            <ShieldCheck size={26} />
           </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-green-100/90">{greet}, {me?.name}</p>
+            <h1 className="text-xl font-extrabold leading-tight sm:text-2xl">Panel Admin KOMAH</h1>
+          </div>
         </div>
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <div className="rounded-2xl bg-white/10 px-3.5 py-3 backdrop-blur">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-green-100/80">Menunggu</p>
+            <p className="mt-0.5 text-2xl font-extrabold text-gold">{pendingCount}</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 px-3.5 py-3 backdrop-blur">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-green-100/80">Driver aktif</p>
+            <p className="mt-0.5 text-2xl font-extrabold">{verifiedCount}</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 px-3.5 py-3 backdrop-blur">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-green-100/80">Titik lokasi</p>
+            <p className="mt-0.5 text-2xl font-extrabold">{locationCount}</p>
+          </div>
+        </div>
+      </div>
 
-        <p className="mt-4 text-sm leading-relaxed text-white/85">
-          Kelola verifikasi driver dan titik layanan KOMAH dari satu tempat.
+      {/* Pintasan panel — diklik langsung dari sini */}
+      <div className="grid gap-3.5 sm:grid-cols-2">
+        <button
+          onClick={() => navigate("/verifikasi")}
+          className="group relative overflow-hidden rounded-3xl border-2 border-gold/50 bg-gradient-to-br from-gold-soft/60 to-card p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+        >
+          {pendingCount > 0 && (
+            <span className="absolute right-4 top-4 flex h-7 min-w-7 items-center justify-center rounded-full bg-gold px-2 text-xs font-extrabold text-unp-deep shadow-md">
+              {pendingCount}
+            </span>
+          )}
+          <span className="flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
+            <ClipboardList size={24} />
+          </span>
+          <p className="mt-3.5 text-base font-extrabold">Verifikasi Driver</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+            Periksa KTM pendaftar driver baru dan setujui atau tolak.
+          </p>
+          <p className="mt-3 flex items-center gap-1 text-xs font-bold text-unp">
+            Buka panel <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+          </p>
+        </button>
+
+        <button
+          onClick={() => navigate("/kelola-lokasi")}
+          className="group relative overflow-hidden rounded-3xl border-2 border-unp/30 bg-gradient-to-br from-unp-soft/60 to-card p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+        >
+          <span className="flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-unp to-unp-dark text-white shadow-md">
+            <MapPinned size={24} />
+          </span>
+          <p className="mt-3.5 text-base font-extrabold">Kelola Lokasi</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+            Tambah titik baru, atur nama &amp; tarif zona untuk rute penumpang.
+          </p>
+          <p className="mt-3 flex items-center gap-1 text-xs font-bold text-unp">
+            Buka panel <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+          </p>
+        </button>
+      </div>
+
+      {/* Info singkat peran admin */}
+      <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <p className="flex items-center gap-2 text-sm font-extrabold">
+          <Bike size={16} className="text-unp" /> Tugas admin KOMAH
         </p>
-
-        <div className="mt-4 grid grid-cols-3 gap-2.5">
-          <div className="rounded-2xl bg-white/12 px-3 py-2.5 text-center">
-            <p className="text-xl font-extrabold leading-none">{pending.length}</p>
-            <p className="mt-1 text-[10px] font-semibold leading-tight text-white/75">Menunggu verifikasi</p>
-          </div>
-          <div className="rounded-2xl bg-white/12 px-3 py-2.5 text-center">
-            <p className="text-xl font-extrabold leading-none">{verifiedCount}</p>
-            <p className="mt-1 text-[10px] font-semibold leading-tight text-white/75">Driver terverifikasi</p>
-          </div>
-          <div className="rounded-2xl bg-white/12 px-3 py-2.5 text-center">
-            <p className="text-xl font-extrabold leading-none">{locations.length}</p>
-            <p className="mt-1 text-[10px] font-semibold leading-tight text-white/75">Titik layanan</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Dua halaman utama — bisa diklik langsung dari sini */}
-      <section>
-        <h2 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Halaman utama</h2>
-        <div className="grid gap-3.5 sm:grid-cols-2">
-          <button
-            onClick={() => navigate("/verifikasi")}
-            className="group flex flex-col rounded-3xl border-2 border-unp/25 bg-card p-5 text-left shadow-sm transition-all hover:border-unp hover:shadow-lg active:scale-[0.98]"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-unp text-white shadow-md">
-                <ClipboardList size={22} />
-              </span>
-              {pending.length > 0 ? (
-                <span className="rounded-full bg-gold px-2.5 py-1 text-[11px] font-extrabold text-unp-deep">
-                  {pending.length} menunggu
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 rounded-full bg-unp-soft px-2.5 py-1 text-[11px] font-bold text-unp-dark">
-                  <BadgeCheck size={12} /> Beres
-                </span>
-              )}
-            </div>
-            <p className="mt-3.5 text-base font-extrabold">Verifikasi Driver</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              Periksa KTM & setujui pendaftaran driver baru.
-            </p>
-            <span className="mt-3 flex items-center gap-1 text-xs font-extrabold text-unp">
-              Buka halaman <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </button>
-
-          <button
-            onClick={() => navigate("/kelola-lokasi")}
-            className="group flex flex-col rounded-3xl border-2 border-gold/40 bg-card p-5 text-left shadow-sm transition-all hover:border-gold hover:shadow-lg active:scale-[0.98]"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gold text-unp-deep shadow-md">
-                <MapPinned size={22} />
-              </span>
-              <span className="rounded-full bg-gold-soft px-2.5 py-1 text-[11px] font-extrabold text-gold-dark">
-                {locations.length} titik
-              </span>
-            </div>
-            <p className="mt-3.5 text-base font-extrabold">Kelola Lokasi &amp; Tarif</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              Tambah titik layanan &amp; atur tarif zone. Dasar {rupiah(locData?.baseFare ?? 6000)}.
-            </p>
-            <span className="mt-3 flex items-center gap-1 text-xs font-extrabold text-gold-dark">
-              Buka halaman <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </button>
-        </div>
-      </section>
-
-      {/* Sorotan pekerjaan — driver yang menunggu persetujuan */}
-      <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Perlu perhatian</h2>
-          {pending.length > 0 && (
-            <button
-              onClick={() => navigate("/verifikasi")}
-              className="text-xs font-extrabold text-unp underline-offset-2 hover:underline"
-            >
-              Lihat semua
-            </button>
-          )}
-        </div>
-        <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-          {pending.length === 0 ? (
-            <div className="flex items-center gap-3.5 px-5 py-6">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-unp-soft text-unp">
-                <UserCheck size={20} />
-              </span>
-              <div>
-                <p className="text-sm font-extrabold text-unp-dark">Tidak ada antrean verifikasi</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Pendaftaran driver baru akan muncul di sini.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {pending.slice(0, 3).map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => navigate("/verifikasi")}
-                  className="flex w-full items-center gap-3.5 px-5 py-3.5 text-left transition-colors hover:bg-unp-soft/50"
-                >
-                  <UserAvatar name={d.name} size={40} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-extrabold">{d.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {d.vehicleType} • {d.vehiclePlate}
-                    </p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-gold-soft px-2.5 py-1 text-[11px] font-bold text-gold-dark">
-                    Periksa KTM
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+        <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
+          <li className="flex gap-2">
+            <Star size={14} className="mt-1 shrink-0 fill-gold text-gold" />
+            Verifikasi KTM maksimal 1x24 jam agar driver baru cepat mulai.
+          </li>
+          <li className="flex gap-2">
+            <Star size={14} className="mt-1 shrink-0 fill-gold text-gold" />
+            Jaga daftar lokasi tetap mutakhir — tarif zona mengikuti daftar ini.
+          </li>
+          <li className="flex gap-2">
+            <Star size={14} className="mt-1 shrink-0 fill-gold text-gold" />
+            Pantau pesanan masuk lewat menu Lokasi &amp; Verifikasi secara berkala.
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }
