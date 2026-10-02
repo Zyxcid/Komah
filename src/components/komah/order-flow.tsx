@@ -310,10 +310,7 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
               <RouteMap pickup={{ lat: pickup.lat, lng: pickup.lng }} dest={{ lat: dest.lat, lng: dest.lng }} />
             )}
             <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <TypeBadge type={type} />
-                <span className="text-xs font-semibold text-muted-foreground">Bayar tunai</span>
-              </div>
+              <TypeBadge type={type} />
               <div className="mt-4 flex gap-3.5">
                 <div className="flex flex-col items-center self-stretch pt-1">
                   <span className="h-3 w-3 rounded-full bg-unp" />

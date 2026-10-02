@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiCall, navigate, rupiah, useApi } from "./lib";
 import { EmptyState } from "./bits";
+import { PinMap } from "./map-view";
 import type { LocationT } from "@/lib/types";
 
 const CATEGORY_META: Record<LocationT["category"], { label: string; icon: React.ElementType }> = {
@@ -53,6 +54,9 @@ const CATEGORY_META: Record<LocationT["category"], { label: string; icon: React.
   PUBLIK: { label: "Titik Publik", icon: Store },
 };
 const CATEGORIES = Object.keys(CATEGORY_META) as Array<LocationT["category"]>;
+
+// Pusat kampus UNP (posisi awal peta admin).
+const UNP_CENTER = { lat: -0.9009, lng: 100.3505 };
 
 export function AdminLocationsView() {
   const { toast } = useToast();
@@ -84,6 +88,10 @@ export function AdminLocationsView() {
       (g) => g.items.length > 0
     );
   }, [locations]);
+
+  // Titik peta form: null bila koordinat belum ditandai.
+  const mapPoint = lat.trim() !== "" && lng.trim() !== "" ? { lat: Number(lat), lng: Number(lng) } : null;
+  const mapCenter = mapPoint || UNP_CENTER;
 
   function openAdd() {
     setEditing(null);
@@ -306,7 +314,7 @@ export function AdminLocationsView() {
 
       {/* Dialog tambah/ubah lokasi */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-h-[88vh] overflow-y-auto max-w-md">
           <DialogHeader>
             <DialogTitle>{editing ? "Ubah Lokasi" : "Tambah Lokasi Baru"}</DialogTitle>
             <DialogDescription>
@@ -376,32 +384,38 @@ export function AdminLocationsView() {
                 </label>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="loc-lat" className="font-semibold">Latitude (opsional)</Label>
-                <Input
-                  id="loc-lat"
-                  value={lat}
-                  onChange={(e) => setLat(e.target.value)}
-                  placeholder="-0.9042"
-                  className="mt-1.5 border-2"
+            <div>
+              <Label className="font-semibold">Titik di peta</Label>
+              <div className="mt-1.5">
+                <PinMap
+                  center={mapCenter}
+                  value={mapPoint}
+                  onChange={(p) => {
+                    setLat(p.lat.toFixed(6));
+                    setLng(p.lng.toFixed(6));
+                  }}
                 />
               </div>
-              <div>
-                <Label htmlFor="loc-lng" className="font-semibold">Longitude (opsional)</Label>
-                <Input
-                  id="loc-lng"
-                  value={lng}
-                  onChange={(e) => setLng(e.target.value)}
-                  placeholder="100.3462"
-                  className="mt-1.5 border-2"
-                />
+              <div className="mt-2 flex items-center justify-between gap-3 text-[11px] leading-snug text-muted-foreground">
+                <span>
+                  {mapPoint
+                    ? `Koordinat: ${mapPoint.lat.toFixed(5)}, ${mapPoint.lng.toFixed(5)}`
+                    : "Ketuk peta untuk menandai titik (opsional)."}
+                </span>
+                {mapPoint && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLat("");
+                      setLng("");
+                    }}
+                    className="shrink-0 font-bold text-red-600 hover:underline"
+                  >
+                    Hapus koordinat
+                  </button>
+                )}
               </div>
             </div>
-            <p className="rounded-xl bg-muted px-3.5 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
-              <MapPin size={12} className="mr-1 inline text-unp" />
-              Koordinat membuat titik muncul di peta penumpang, boleh dikosongkan bila tidak tahu pasti.
-            </p>
           </div>
           <DialogFooter>
             <Button onClick={submitForm} disabled={formBusy} className="w-full gap-2 bg-unp font-extrabold hover:bg-unp-dark">

@@ -122,19 +122,17 @@ export function VerifiedBadge({ className }: { className?: string }) {
   );
 }
 
-/** Baris titik jemput/tujuan dengan titik warna, patokan, dan lencana "pin digeser". */
+/** Baris titik jemput/tujuan dengan titik warna dan patokan. */
 export function PointRow({
   color,
   label,
   name,
   detail,
-  moved,
 }: {
   color: string;
   label: string;
   name: string;
   detail?: string | null;
-  moved?: boolean;
 }) {
   return (
     <div className="flex items-start gap-3">
@@ -144,13 +142,8 @@ export function PointRow({
         aria-hidden
       />
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
           {label}
-          {moved && (
-            <span className="rounded-full bg-gold-soft px-1.5 py-0.5 text-[10px] font-bold normal-case tracking-normal text-gold-dark">
-              pin digeser
-            </span>
-          )}
         </p>
         <p className="font-bold leading-snug">{name}</p>
         {detail && <p className="text-sm leading-snug text-muted-foreground">{detail}</p>}

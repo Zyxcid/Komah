@@ -172,7 +172,6 @@ export function OrderDetailView({ code }: { code: string }) {
           </span>
           <div className="flex-1">
             <p className="text-sm font-extrabold text-unp-dark">Sedang mencarikan driver terdekat…</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">Biasanya kurang dari 3 menit pada jam kuliah.</p>
           </div>
         </div>
       )}
@@ -214,14 +213,6 @@ export function OrderDetailView({ code }: { code: string }) {
           <p className="mt-3 flex items-center gap-1.5 rounded-xl bg-unp-soft px-3 py-2 text-[11px] font-semibold text-unp-dark">
             <ShieldQuestion size={13} /> Driver terverifikasi KTM, identitas mahasiswa UNP aktif.
           </p>
-        </div>
-      ) : order.status !== "DIBATALKAN" ? (
-        <div className="rounded-3xl border-2 border-dashed border-border bg-card/50 p-5 text-center">
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <MapPin size={20} />
-          </div>
-          <p className="mt-2.5 text-sm font-bold">Menunggu driver menerima pesanan</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Detail driver akan muncul di sini begitu pesanan diterima.</p>
         </div>
       ) : null}
 

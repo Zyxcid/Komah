@@ -137,14 +137,13 @@ export function DriverActiveOrder({
         </p>
       )}
 
-      {/* Titik jemput & tujuan (lencana bila pin digeser penumpang) */}
+      {/* Titik jemput & tujuan */}
       <div className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-sm">
         <PointRow
           color={UNP}
           label="Titik jemput"
           name={order.pickupLocation.name}
           detail={order.pickupDetail}
-          moved={order.pickupLat != null && order.pickupLocation.lat != null && order.pickupLat !== order.pickupLocation.lat}
         />
         <div className="ml-[3px] h-6 w-0.5 rounded-full bg-gradient-to-b from-unp to-gold" aria-hidden />
         <PointRow
@@ -152,7 +151,6 @@ export function DriverActiveOrder({
           label="Tujuan"
           name={order.destLocation.name}
           detail={order.destDetail}
-          moved={order.destLat != null && order.destLocation.lat != null && order.destLat !== order.destLocation.lat}
         />
         {order.itemNote && (
           <p className="rounded-xl bg-gold-soft/60 px-3.5 py-2.5 text-sm font-semibold text-gold-dark">

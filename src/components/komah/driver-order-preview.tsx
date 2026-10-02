@@ -5,7 +5,7 @@
 // dan profil penumpang. Terima/tolak dari tombol menempel di bawah dialog.
 
 import { useMemo } from "react";
-import { BadgeCheck, Loader2, MapPin, MessageCircle, Route as RouteIcon } from "lucide-react";
+import { BadgeCheck, Loader2, MessageCircle, Route as RouteIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -86,14 +86,12 @@ export function DriverOrderPreview({
               label="Titik jemput"
               name={order.pickupLocation.name}
               detail={order.pickupDetail}
-              moved={order.pickupLat != null && order.pickupLocation.lat != null && order.pickupLat !== order.pickupLocation.lat}
             />
             <PointRow
               color={GOLD}
               label="Tujuan"
               name={order.destLocation.name}
               detail={order.destDetail}
-              moved={order.destLat != null && order.destLocation.lat != null && order.destLat !== order.destLocation.lat}
             />
             <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
               <span className="text-muted-foreground">Tarif (tunai)</span>
@@ -133,11 +131,6 @@ export function DriverOrderPreview({
               )}
             </div>
           )}
-
-          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <MapPin size={12} className="text-unp" />
-            Pin mengikuti titik yang ditandai penumpang, perhatikan detailnya.
-          </p>
         </div>
 
         {/* Aksi — sticky di bawah dialog agar selalu terlihat tanpa scroll */}

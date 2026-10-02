@@ -143,12 +143,11 @@ export function HomeView() {
             </button>
             <button
               onClick={() => repeatOrder(lastOrder)}
-              className="flex w-14 shrink-0 flex-col items-center justify-center gap-1 rounded-3xl border-2 border-unp/30 bg-unp-soft text-unp-dark transition-all hover:border-unp hover:shadow-md"
+              className="flex w-14 shrink-0 items-center justify-center rounded-3xl border-2 border-unp/30 bg-unp-soft text-unp-dark transition-all hover:border-unp hover:shadow-md"
               aria-label="Pesan lagi rute yang sama"
               title="Pesan lagi rute yang sama"
             >
-              <Repeat2 size={20} />
-              <span className="text-[10px] font-extrabold leading-none">Pesan lagi</span>
+              <Repeat2 size={22} />
             </button>
           </div>
         </section>

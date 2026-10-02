@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { apiCall, navigate, uploadFile, useApi, useAuth } from "./lib";
+import { PIN_DETAIL_RE, apiCall, navigate, uploadFile, useApi, useAuth } from "./lib";
 import { LocationPicker } from "./location-picker";
 import { UserAvatar, VerifiedBadge } from "./bits";
 import type { LocationT } from "@/lib/types";
@@ -379,7 +379,7 @@ export function ProfileView() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-extrabold">{a.label} · {a.location.name}</p>
-                {a.detail && <p className="truncate text-xs text-muted-foreground">{a.detail}</p>}
+                {a.detail && !PIN_DETAIL_RE.test(a.detail) && <p className="truncate text-xs text-muted-foreground">{a.detail}</p>}
               </div>
               <button
                 onClick={() => deleteAddress(a.id)}

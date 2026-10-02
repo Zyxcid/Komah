@@ -5,7 +5,7 @@ import {
   BookmarkPlus,
   Building2,
   Check,
-  Crosshair,
+  ChevronDown,
   Home,
   List,
   Loader2,
@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { apiCall, rupiah, useAuth } from "./lib";
+import { PIN_DETAIL_RE, apiCall, parsePinDetail, pinDetail, rupiah, useAuth } from "./lib";
 import { PinMap } from "./map-view";
 import type { AddressT, LocationT } from "@/lib/types";
 
@@ -35,25 +35,10 @@ const CATEGORY_META: Record<LocationT["category"], { label: string; icon: React.
   PUBLIK: { label: "Titik Publik", icon: Store },
 };
 
-// Pusat kampus UNP (fallback bila GPS tidak tersedia / ditolak).
+// Pusat kampus UNP (posisi awal peta).
 const UNP_CENTER = { lat: -0.9009, lng: 100.3505 };
 
-/** Lokasi terdekat dari sebuah titik — dipakai untuk menentukan zona tarif titik bebas. */
-function nearestLocation(locs: LocationT[], p: { lat: number; lng: number }): LocationT | null {
-  let best: LocationT | null = null;
-  let bestD = Infinity;
-  for (const l of locs) {
-    if (l.lat == null || l.lng == null) continue;
-    const d = (l.lat - p.lat) ** 2 + (l.lng - p.lng) ** 2;
-    if (d < bestD) {
-      bestD = d;
-      best = l;
-    }
-  }
-  return best;
-}
-
-type Tab = "peta" | "lokasi" | "alamat";
+type ListView = "lokasi" | "alamat";
 
 export function LocationPicker({
   locations,
@@ -75,18 +60,14 @@ export function LocationPicker({
   const { toast } = useToast();
   const { refresh } = useAuth();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("peta");
+  // null = hanya peta; "lokasi"/"alamat" = daftar terbuka lewat shortcut.
+  const [listView, setListView] = useState<ListView | null>(null);
   const [q, setQ] = useState("");
 
   // Pilihan yang sedang disusun (belum dikonfirmasi):
-  // anchor = lokasi zona (nama & tarif), pin = koordinat persis di peta.
+  // pending = lokasi zona (nama & tarif), pin = koordinat persis di peta.
   const [pending, setPending] = useState<LocationT | null>(null);
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
-  const [custom, setCustom] = useState(false); // titik ditandai sendiri di peta
-
-  // GPS
-  const [locating, setLocating] = useState(false);
-  const [myPos, setMyPos] = useState<{ lat: number; lng: number } | null>(null);
 
   // Simpan titik ke alamat tersimpan
   const [saveOpen, setSaveOpen] = useState(false);
@@ -101,62 +82,62 @@ export function LocationPicker({
       .filter((g) => g.items.length > 0);
   }, [locations, q]);
 
-  // Deteksi apakah pin sudah digeser dari koordinat asli lokasi (info kecil).
-  const origLoc = value ? locations.find((l) => l.id === value.id) : null;
-  const pinMoved = !!(origLoc?.lat != null && value?.lat != null && origLoc.lat !== value.lat);
+  // Pin digeser dari koordinat asli lokasi → tawarkan simpan sebagai alamat.
+  const pinMoved = !!(
+    pending &&
+    pin &&
+    pending.lat != null &&
+    pending.lng != null &&
+    (pin.lat !== pending.lat || pin.lng !== pending.lng)
+  );
 
-  const center: { lat: number; lng: number } =
-    myPos ||
-    (value?.lat != null && value?.lng != null ? { lat: value.lat, lng: value.lng } : null) ||
-    UNP_CENTER;
+  // Buka dialog: mulai dari pilihan saat ini (bila sudah pernah dipilih).
+  function openDialog() {
+    setPending(value ?? null);
+    setPin(value?.lat != null && value?.lng != null ? { lat: value.lat, lng: value.lng } : null);
+    setOpen(true);
+  }
+
+  // Lokasi terdekat dari sebuah titik — zona & tarif mengikuti pin.
+  // (Jarak bidang sederhana; akurat untuk skala kampus.)
+  function nearestLoc(p: { lat: number; lng: number }): LocationT | null {
+    let best: LocationT | null = null;
+    let bestD = Infinity;
+    const k = Math.cos((p.lat * Math.PI) / 180);
+    for (const l of locations) {
+      if (l.lat == null || l.lng == null) continue;
+      const d = (l.lat - p.lat) ** 2 + ((l.lng - p.lng) * k) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = l;
+      }
+    }
+    return best;
+  }
+
+  // Ketuk / geser pin: pin menandai titik persis, lokasi (zona) mengikuti
+  // titik terdekat — tombol konfirmasi selalu menunjukkan lokasinya.
+  function movePin(p: { lat: number; lng: number }) {
+    setPin(p);
+    const near = nearestLoc(p);
+    if (near) setPending(near);
+  }
 
   function selectLoc(loc: LocationT) {
     setPending(loc);
-    setCustom(false);
     setPin(loc.lat != null && loc.lng != null ? { lat: loc.lat, lng: loc.lng } : null);
-    // Kembali ke peta agar pin lokasi terlihat — user bisa menggesernya
-    // ke posisi sebenarnya sebelum konfirmasi (fungsi utama shortcut ini).
-    if (loc.lat != null && loc.lng != null) setTab("peta");
+    setListView(null); // kembali ke peta untuk penyesuaian pin
   }
 
   function selectAddress(a: AddressT) {
-    setPending(a.location);
-    setCustom(false);
-    setPin(a.location.lat != null && a.location.lng != null ? { lat: a.location.lat, lng: a.location.lng } : null);
-    onPickAddress?.(a);
+    // Pulihkan pin persis yang tersimpan (bila ada). Koordinat tidak
+    // diteruskan sebagai detail — itu data internal, bukan teks user.
+    const saved =
+      parsePinDetail(a.detail) ??
+      (a.location.lat != null && a.location.lng != null ? { lat: a.location.lat, lng: a.location.lng } : null);
+    onPickAddress?.({ ...a, detail: PIN_DETAIL_RE.test(a.detail ?? "") ? null : a.detail });
     // Langsung konfirmasi — alamat tersimpan sudah jelas pilihannya.
-    confirm(a.location, a.location.lat != null && a.location.lng != null ? { lat: a.location.lat, lng: a.location.lng } : null);
-  }
-
-  /** Titik bebas dari peta (ketuk/GPS/geser) — zona mengikuti lokasi terdekat. */
-  function pickPoint(p: { lat: number; lng: number }) {
-    const anchor = nearestLocation(locations, p);
-    setPin(p);
-    if (anchor) {
-      setPending({ ...anchor, lat: p.lat, lng: p.lng });
-      setCustom(true);
-    }
-  }
-
-  function useMyPosition() {
-    if (!navigator.geolocation) {
-      toast({ title: "GPS tidak tersedia", description: "Perangkat ini tidak mendukung geolokasi.", variant: "destructive" });
-      return;
-    }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setMyPos(p);
-        pickPoint(p);
-        setLocating(false);
-      },
-      () => {
-        toast({ title: "Tidak bisa mendapat posisi", description: "Izinkan akses lokasi atau tandai titik manual di peta." });
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
+    confirm(a.location, saved);
   }
 
   function confirm(loc: LocationT | null, p: { lat: number; lng: number } | null) {
@@ -169,9 +150,8 @@ export function LocationPicker({
   function reset() {
     setPending(null);
     setPin(null);
-    setCustom(false);
     setQ("");
-    setTab("peta");
+    setListView(null);
     setSaveOpen(false);
     setSaveLabel("");
   }
@@ -182,7 +162,7 @@ export function LocationPicker({
     const { ok, data } = await apiCall("/api/profile/addresses", "POST", {
       label: saveLabel.trim(),
       locationId: pending.id,
-      detail: pin ? `Pin peta (${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)})` : "",
+      detail: pin ? pinDetail(pin) : "",
     });
     setSaveBusy(false);
     if (!ok) {
@@ -190,15 +170,14 @@ export function LocationPicker({
       return;
     }
     await refresh();
-    toast({ title: "Alamat tersimpan", description: "Bisa dipakai lagi lewat tab Alamat Tersimpan." });
+    toast({ title: "Alamat tersimpan", description: "Bisa dipakai lagi lewat Alamat Tersimpan." });
     setSaveOpen(false);
     setSaveLabel("");
   }
 
-  const tabs: Array<{ key: Tab; label: string; icon: React.ElementType; show: boolean }> = [
-    { key: "peta", label: "Peta", icon: MapPin, show: true },
-    { key: "lokasi", label: "Daftar Lokasi", icon: List, show: true },
-    { key: "alamat", label: "Alamat Tersimpan", icon: Home, show: !!addresses },
+  const shortcuts: Array<{ key: ListView; label: string; icon: React.ElementType }> = [
+    { key: "lokasi", label: "Daftar Lokasi", icon: List },
+    ...(addresses ? [{ key: "alamat" as const, label: "Alamat Tersimpan", icon: Home }] : []),
   ];
 
   return (
@@ -206,7 +185,7 @@ export function LocationPicker({
       <label className="mb-1.5 block text-sm font-semibold text-foreground">{label}</label>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openDialog}
         className={cn(
           "flex w-full items-center gap-3 rounded-xl border-2 bg-card px-4 py-3.5 text-left transition-colors",
           value ? "border-unp/40 hover:border-unp" : "border-input hover:border-unp/50"
@@ -222,7 +201,6 @@ export function LocationPicker({
               <span className="block text-xs text-muted-foreground">
                 {CATEGORY_META[value.category].label}
                 {value.category !== "KAMPUS" && ` • ${rupiah(value.fare)} dari kampus`}
-                {pinMoved && " • pin digeser"}
               </span>
             </>
           ) : (
@@ -234,149 +212,135 @@ export function LocationPicker({
 
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
         <DialogContent className="max-h-[88vh] gap-0 overflow-y-auto p-0 max-w-md flex flex-col">
-          <DialogHeader className="shrink-0 px-5 pt-5 pb-3 text-left">
+          <DialogHeader className="shrink-0 px-5 pt-4 pb-2.5 text-left">
             <DialogTitle className="text-base">Pilih {label}</DialogTitle>
             <DialogDescription className="sr-only">
-              Tandai titik di peta, atau pilih dari daftar lokasi dan alamat tersimpan.
+              Ketuk peta untuk menandai titik, atau buka daftar lokasi dan alamat tersimpan.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Peta hanya di tab Peta — setelah memilih dari daftar, tab pindah
-              ke sini otomatis agar pin bisa digeser ke posisi sebenarnya. */}
-          {tab === "peta" && (
-            <div className="shrink-0 px-5">
-              <PinMap center={center} value={pin} onChange={pickPoint} />
-              {pending && pin && !custom && (
-                <p className="mt-2 text-center text-[11px] leading-snug text-muted-foreground">
-                  Geser pin bila posisimu berbeda, lalu konfirmasi di bawah.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Tab sumber titik */}
-          <div className="shrink-0 px-5 pt-3">
-            <div className="grid grid-cols-3 gap-2">
-              {tabs.filter((t) => t.show).map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setTab(t.key)}
-                  aria-pressed={tab === t.key}
-                  className={cn(
-                    "flex h-10 items-center justify-center gap-1.5 rounded-xl border-2 text-xs font-bold transition-colors",
-                    tab === t.key
-                      ? "border-unp bg-unp-soft text-unp-dark"
-                      : "border-border bg-card text-muted-foreground hover:border-unp/40"
-                  )}
-                >
-                  <t.icon size={14} />
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            {tab === "peta" && (
-              <Button
-                type="button"
-                onClick={useMyPosition}
-                disabled={locating}
-                variant="outline"
-                className="mt-2.5 h-10 w-full gap-2 border-2 text-xs font-bold"
-              >
-                {locating ? <Loader2 size={14} className="animate-spin" /> : <Crosshair size={14} />}
-                Gunakan posisiku saat ini
-              </Button>
-            )}
+          {/* Peta tampil lebih dulu — pin bisa diketuk/digeser ke posisi sebenarnya. */}
+          <div className="shrink-0 px-5">
+            <PinMap
+              className={listView ? "h-44 sm:h-44" : "h-[340px] sm:h-[340px]"}
+              center={value?.lat != null && value?.lng != null ? { lat: value.lat, lng: value.lng } : UNP_CENTER}
+              value={pin}
+              onChange={movePin}
+            />
           </div>
 
-          {/* Daftar lokasi / alamat tersimpan — scroll native (andal di layar sentuh) */}
-          {tab === "lokasi" && (
-            <div className="shrink-0 px-5 pt-3">
-              <div className="relative">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  autoFocus
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Cari lokasi… (cth: FT, Parkit, Kurao)"
-                  className="h-10 border-2 pl-9 text-sm"
-                />
-              </div>
-            </div>
-          )}
-          {tab !== "peta" && (
-            <div className="max-h-72 overflow-y-auto overscroll-contain border-t">
-              <div className="px-3 py-2.5">
-                {tab === "lokasi" && grouped.length === 0 && (
-                  <p className="py-6 text-center text-sm text-muted-foreground">Lokasi tidak ditemukan.</p>
+          {/* Shortcut daftar — daftar muncul di bawah peta saat diketuk. */}
+          <div className={cn("flex gap-2 px-5 py-3", addresses && "grid grid-cols-2")}>
+            {shortcuts.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setListView(listView === s.key ? null : s.key)}
+                aria-pressed={listView === s.key}
+                className={cn(
+                  "flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border-2 text-xs font-bold transition-colors",
+                  listView === s.key
+                    ? "border-unp bg-unp-soft text-unp-dark"
+                    : "border-border bg-card text-muted-foreground hover:border-unp/40"
                 )}
-                {tab === "lokasi" &&
-                  grouped.map(({ cat, items }) => {
-                    const Icon = CATEGORY_META[cat].icon;
-                    return (
-                      <div key={cat} className="mb-1.5">
-                        <p className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                          {CATEGORY_META[cat].label}
-                        </p>
-                        {items.map((loc) => (
-                          <button
-                            key={loc.id}
-                            type="button"
-                            onClick={() => selectLoc(loc)}
-                            className={cn(
-                              "flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-unp-soft",
-                              pending?.id === loc.id && "bg-unp-soft"
-                            )}
-                          >
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-unp-soft text-unp">
-                              <Icon size={16} />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="flex items-center gap-2">
-                                <span className="truncate text-sm font-semibold">{loc.name}</span>
-                                {loc.isPopular && (
-                                  <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-gold-soft px-1.5 py-0.5 text-[10px] font-bold text-gold-dark">
-                                    <Star size={9} className="fill-gold-dark" /> Populer
-                                  </span>
-                                )}
+              >
+                <s.icon size={14} />
+                {s.label}
+                <ChevronDown size={13} className={cn("transition-transform", listView === s.key && "rotate-180")} />
+              </button>
+            ))}
+          </div>
+
+          {/* Daftar lokasi / alamat tersimpan — hanya saat shortcut aktif. */}
+          {listView && (
+            <div className="shrink-0 border-t">
+              {listView === "lokasi" && (
+                <div className="px-5 pt-3">
+                  <div className="relative">
+                    <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      autoFocus
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder="Cari lokasi… (cth: FT, Parkit, Kurao)"
+                      className="h-10 border-2 pl-9 text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="overscroll-contain max-h-64 overflow-y-auto">
+                <div className="px-3 py-2.5">
+                  {listView === "lokasi" && grouped.length === 0 && (
+                    <p className="py-6 text-center text-sm text-muted-foreground">Lokasi tidak ditemukan.</p>
+                  )}
+                  {listView === "lokasi" &&
+                    grouped.map(({ cat, items }) => {
+                      const Icon = CATEGORY_META[cat].icon;
+                      return (
+                        <div key={cat} className="mb-1.5">
+                          <p className="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                            {CATEGORY_META[cat].label}
+                          </p>
+                          {items.map((loc) => (
+                            <button
+                              key={loc.id}
+                              type="button"
+                              onClick={() => selectLoc(loc)}
+                              className={cn(
+                                "flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-unp-soft",
+                                pending?.id === loc.id && "bg-unp-soft"
+                              )}
+                            >
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-unp-soft text-unp">
+                                <Icon size={16} />
                               </span>
-                              <span className="block text-xs text-muted-foreground">
-                                {loc.category === "KAMPUS" ? "Tarif dasar" : `${rupiah(loc.fare)} dari kampus`}
+                              <span className="min-w-0 flex-1">
+                                <span className="flex items-center gap-2">
+                                  <span className="truncate text-sm font-semibold">{loc.name}</span>
+                                  {loc.isPopular && (
+                                    <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-gold-soft px-1.5 py-0.5 text-[10px] font-bold text-gold-dark">
+                                      <Star size={9} className="fill-gold-dark" /> Populer
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="block text-xs text-muted-foreground">
+                                  {loc.category === "KAMPUS" ? "Tarif dasar" : `${rupiah(loc.fare)} dari kampus`}
+                                </span>
                               </span>
-                            </span>
-                            {pending?.id === loc.id && <Check size={16} className="shrink-0 text-unp" />}
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })}
-                {tab === "alamat" && (
-                  <>
-                    {(addresses || []).length === 0 && (
-                      <p className="py-6 text-center text-sm text-muted-foreground">
-                        Belum ada alamat tersimpan. Tandai titik di peta lalu simpan.
-                      </p>
-                    )}
-                    {(addresses || []).map((a) => (
-                      <button
-                        key={a.id}
-                        type="button"
-                        onClick={() => selectAddress(a)}
-                        className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-unp-soft"
-                      >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-unp-soft text-unp">
-                          {a.label.toLowerCase().includes("kos") ? <Home size={16} /> : <Star size={16} />}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">
-                            {a.label} · {a.location.name}
+                              {pending?.id === loc.id && <Check size={16} className="shrink-0 text-unp" />}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  {listView === "alamat" && (
+                    <>
+                      {(addresses || []).length === 0 && (
+                        <p className="py-6 text-center text-sm text-muted-foreground">Belum ada alamat tersimpan.</p>
+                      )}
+                      {(addresses || []).map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => selectAddress(a)}
+                          className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-unp-soft"
+                        >
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-unp-soft text-unp">
+                            {a.label.toLowerCase().includes("kos") ? <Home size={16} /> : <Star size={16} />}
                           </span>
-                          {a.detail && <span className="block truncate text-xs text-muted-foreground">{a.detail}</span>}
-                        </span>
-                      </button>
-                    ))}
-                  </>
-                )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold">
+                              {a.label} · {a.location.name}
+                            </span>
+                            {a.detail && !PIN_DETAIL_RE.test(a.detail) && (
+                              <span className="block truncate text-xs text-muted-foreground">{a.detail}</span>
+                            )}
+                          </span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -402,13 +366,13 @@ export function LocationPicker({
               <>
                 <Button
                   onClick={() => confirm(pending, pin)}
-                  disabled={!pending || !pin}
+                  disabled={!pending}
                   className="h-11 w-full gap-2 bg-unp font-extrabold hover:bg-unp-dark"
                 >
                   <Check size={16} />
-                  {pending && pin ? `Gunakan: ${pending.name}${custom ? " (titik peta)" : ""}` : "Tandai titik di peta dulu"}
+                  {pending ? `Gunakan: ${pending.name}` : "Pilih lokasi dulu"}
                 </Button>
-                {pending && pin && custom && (
+                {pinMoved && (
                   <button
                     type="button"
                     onClick={() => setSaveOpen(true)}

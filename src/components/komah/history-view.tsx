@@ -92,12 +92,11 @@ export function HistoryView() {
                   <button
                     onClick={() => repeat(o)}
                     disabled={o.status === "MENCARI" || o.status === "DIKONFIRMASI" || o.status === "BERJALAN"}
-                    className="flex w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-unp/30 bg-unp-soft text-unp-dark transition-all hover:border-unp hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-unp/30 bg-unp-soft text-unp-dark transition-all hover:border-unp hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Pesan lagi rute yang sama"
                     title="Pesan lagi rute yang sama"
                   >
-                    <Repeat2 size={18} />
-                    <span className="text-[9px] font-extrabold leading-none">Ulangi</span>
+                    <Repeat2 size={20} />
                   </button>
                 </div>
               ))}

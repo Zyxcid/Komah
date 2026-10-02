@@ -362,6 +362,22 @@ export function fmtKm(meters: number) {
   return `${(meters / 1000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} km`;
 }
 
+// ===================== Detail alamat tersimpan =====================
+// Koordinat pin disimpan di kolom detail agar titik persis bisa dipulihkan
+// saat alamat dipilih lagi — tetapi teksnya TIDAK pernah ditampilkan
+// (koordinat adalah data internal, bukan teks untuk user/driver).
+
+export const PIN_DETAIL_RE = /^Pin peta \((-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?)\)$/;
+
+export function pinDetail(p: { lat: number; lng: number }) {
+  return `Pin peta (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`;
+}
+
+export function parsePinDetail(detail: string | null | undefined) {
+  const m = detail?.match(PIN_DETAIL_RE);
+  return m ? { lat: Number(m[1]), lng: Number(m[2]) } : null;
+}
+
 /** Apakah penumpang menggeser pin jemput/tujuan dari koordinat lokasi asli. */
 export function pinMoved(o: {
   pickupLat: number | null;

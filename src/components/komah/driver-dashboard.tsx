@@ -236,13 +236,7 @@ export function DriverDashboardView() {
 
       {/* Pesanan masuk — kartu bisa diketuk untuk melihat titik di peta */}
       <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Pesanan Masuk</h2>
-          <span className="flex items-center gap-1.5 text-xs font-bold text-unp">
-            <span className="relative flex h-2 w-2 rounded-full bg-unp text-unp pulse-ring" />
-            Real-time
-          </span>
-        </div>
+        <h2 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Pesanan Masuk</h2>
 
         {!verified ? (
           <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-7 text-center text-sm text-muted-foreground">
