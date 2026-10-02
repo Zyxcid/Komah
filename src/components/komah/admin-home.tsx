@@ -4,7 +4,7 @@
 // kelola lokasi (plus ringkasan cepat). Kedua panel dibuka lewat kartu di
 // sini, bukan dari dropdown profil.
 
-import { Bike, ChevronRight, ClipboardList, MapPinned, ShieldCheck, Star } from "lucide-react";
+import { ChevronRight, ClipboardList, MapPinned, ShieldCheck } from "lucide-react";
 import { navigate, useApi, useAuth } from "./lib";
 
 interface HomeStats {
@@ -91,27 +91,6 @@ export function AdminHomeView() {
             Buka panel <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
           </p>
         </button>
-      </div>
-
-      {/* Info singkat peran admin */}
-      <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-        <p className="flex items-center gap-2 text-sm font-extrabold">
-          <Bike size={16} className="text-unp" /> Tugas admin KOMAH
-        </p>
-        <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
-          <li className="flex gap-2">
-            <Star size={14} className="mt-1 shrink-0 fill-gold text-gold" />
-            Verifikasi KTM maksimal 1x24 jam agar driver baru cepat mulai.
-          </li>
-          <li className="flex gap-2">
-            <Star size={14} className="mt-1 shrink-0 fill-gold text-gold" />
-            Jaga daftar lokasi tetap mutakhir — tarif zona mengikuti daftar ini.
-          </li>
-          <li className="flex gap-2">
-            <Star size={14} className="mt-1 shrink-0 fill-gold text-gold" />
-            Pantau pesanan masuk lewat menu Lokasi &amp; Verifikasi secara berkala.
-          </li>
-        </ul>
       </div>
     </div>
   );

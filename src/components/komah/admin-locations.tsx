@@ -168,7 +168,7 @@ export function AdminLocationsView() {
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="max-w-md text-sm text-muted-foreground">
-          Titik yang bisa dipilih penumpang — atur nama, zona, dan tarifnya.
+          Titik yang bisa dipilih penumpang. Atur nama, zona, dan tarifnya.
         </p>
         <Button onClick={openAdd} className="gap-2 bg-unp font-extrabold hover:bg-unp-dark">
           <Plus size={16} /> Tambah Lokasi
@@ -400,7 +400,7 @@ export function AdminLocationsView() {
             </div>
             <p className="rounded-xl bg-muted px-3.5 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
               <MapPin size={12} className="mr-1 inline text-unp" />
-              Koordinat membuat titik muncul di peta penumpang — bisa dikosongkan bila tidak tahu pasti.
+              Koordinat membuat titik muncul di peta penumpang, boleh dikosongkan bila tidak tahu pasti.
             </p>
           </div>
           <DialogFooter>

@@ -7,6 +7,7 @@ import {
   Camera,
   Check,
   CheckCircle2,
+  ChevronRight,
   Clock,
   Home,
   Loader2,
@@ -68,6 +69,7 @@ export function ProfileView() {
 
   const isDriver = me?.role === "DRIVER";
   const canRegisterDriver = me?.role === "USER" || (me?.role === "DRIVER" && me?.verifyStatus === "REJECTED");
+  const isRejectedDriver = me?.role === "DRIVER" && me?.verifyStatus === "REJECTED";
 
   async function saveProfile() {
     setSaving(true);
@@ -299,34 +301,6 @@ export function ProfileView() {
         </div>
       )}
 
-      {/* Naik kelas: penumpang jadi driver */}
-      {canRegisterDriver && (
-        <div className="rounded-3xl border-2 border-gold/50 bg-gradient-to-br from-gold-soft/50 to-card p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
-              <Bike size={24} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-base font-extrabold text-gold-dark">
-                {me?.verifyStatus === "REJECTED" ? "Ajukan Ulang Verifikasi" : "Jadi Driver KOMAH"}
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                {me?.verifyStatus === "REJECTED"
-                  ? "Pendaftaranmu sebelumnya ditolak admin. Lengkapi kembali data & unggah KTM yang jelas."
-                  : "Cari penghasilan di sela kuliah — cukup verifikasi KTM sekali, kamu tetap bisa memesan sebagai penumpang kapan pun."}
-              </p>
-              <Button
-                onClick={openDriverDialog}
-                className="mt-3.5 h-11 gap-2 bg-gold font-extrabold text-unp-deep hover:bg-gold-dark hover:text-white"
-              >
-                <Bike size={16} />
-                {me?.verifyStatus === "REJECTED" ? "Ajukan Ulang" : "Daftar Jadi Driver"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Info dasar */}
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
         <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Informasi Akun</h2>
@@ -391,7 +365,7 @@ export function ProfileView() {
             <Plus size={15} /> Tambah
           </Button>
         </div>
-        <p className="mt-1.5 text-xs text-muted-foreground">Maksimal 5 alamat — mempercepat pemesanan berikutnya.</p>
+        <p className="mt-1.5 text-xs text-muted-foreground">Maksimal 5 alamat untuk mempercepat pemesanan berikutnya.</p>
         <div className="mt-4 space-y-2.5">
           {addresses.length === 0 && (
             <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
@@ -404,7 +378,7 @@ export function ProfileView() {
                 {a.label.toLowerCase().includes("kos") ? <Home size={17} /> : <MapPin size={17} />}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-extrabold">{a.label} — {a.location.name}</p>
+                <p className="text-sm font-extrabold">{a.label} · {a.location.name}</p>
                 {a.detail && <p className="truncate text-xs text-muted-foreground">{a.detail}</p>}
               </div>
               <button
@@ -418,6 +392,31 @@ export function ProfileView() {
           ))}
         </div>
       </div>
+
+      {/* Naik kelas jadi driver — baris ringkas di bawah, selalu ada
+          (tanpa tombol tutup: jangan sampai user tak bisa mendaftar karena salah klik). */}
+      {canRegisterDriver && (
+        <button
+          type="button"
+          onClick={openDriverDialog}
+          className="flex w-full items-center gap-3.5 rounded-3xl border border-border bg-card p-4 text-left shadow-sm transition-all hover:border-gold/60 hover:shadow-md"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-soft text-gold-dark">
+            <Bike size={19} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-foreground">
+              {isRejectedDriver ? "Ajukan Ulang Verifikasi Driver" : "Jadi Driver KOMAH"}
+            </span>
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+              {isRejectedDriver
+                ? "Lengkapi kembali data & unggah ulang KTM-mu."
+                : "Cari penghasilan di sela kuliah, cukup verifikasi KTM sekali."}
+            </span>
+          </span>
+          <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+        </button>
+      )}
 
       {/* Keluar */}
       <Button
@@ -525,7 +524,7 @@ export function ProfileView() {
                 )}
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-bold">
-                    {drvUploading ? "Mengunggah KTM…" : drvKtm ? "KTM terunggah — klik untuk ganti" : "Unggah foto KTM (JPG/PNG, maks 5 MB)"}
+                    {drvUploading ? "Mengunggah KTM…" : drvKtm ? "KTM terunggah, klik untuk ganti" : "Unggah foto KTM (JPG/PNG, maks 5 MB)"}
                   </span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">
                     Dipakai admin untuk memverifikasi identitas mahasiswamu
@@ -539,7 +538,7 @@ export function ProfileView() {
             </div>
             <p className="flex items-start gap-2 rounded-xl bg-muted px-3.5 py-3 text-[11px] leading-relaxed text-muted-foreground">
               <MessageCircle size={13} className="mt-0.5 shrink-0 text-unp" />
-              Setelah disetujui, kamu bisa berbalik peran kapan saja — mode aplikasi diatur dari kartu Mode Aplikasi di atas.
+              Setelah disetujui, kamu bisa berbalik peran kapan saja lewat kartu Mode Aplikasi di atas.
             </p>
           </div>
           <DialogFooter>

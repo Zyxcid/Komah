@@ -4,6 +4,7 @@
 // Semua pemakaian peta di aplikasi cukup import dari file ini.
 
 import dynamic from "next/dynamic";
+import { cn } from "@/lib/utils";
 import type { PinMapProps, RouteMapProps } from "./map-core";
 
 function MapSkeleton() {
@@ -32,10 +33,10 @@ export function RouteMap(props: RouteMapProps) {
 }
 
 /** Peta kecil dengan pin yang bisa digeser — di dalam dialog pemilih lokasi. */
-export function PinMap(props: PinMapProps) {
+export function PinMap({ className, ...props }: PinMapProps & { className?: string }) {
   return (
     <div className="overflow-hidden rounded-2xl border-2 border-border">
-      <div className="h-44 w-full">
+      <div className={cn("h-52 w-full sm:h-56", className)}>
         <PinMapCore {...props} />
       </div>
     </div>

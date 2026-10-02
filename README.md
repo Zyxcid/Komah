@@ -2,7 +2,7 @@
 
 Aplikasi web bergaya **Gojek kampus** untuk warga Universitas Negeri Padang (UNP): pesan ojek penumpang, titip antar barang, dan pesan makanan kantin dengan **tarif transparan sejak awal** dan **pembayaran tunai saat tiba**. Driver adalah mahasiswa UNP terverifikasi KTM. Dilengkapi **peta OpenStreetMap** (pin jemput presisi + pelacakan posisi driver live) dan **notifikasi WhatsApp**.
 
-Dibangun dengan **React 19 + Next.js 16 (App Router) + TypeScript + Tailwind CSS 4 + shadcn/ui + Prisma (SQLite)**. Seluruh komponen antarmuka adalah komponen React murni, dan API backend (autentikasi, pesanan, driver, admin) berjalan dalam satu kodebasis yang sama sehingga bisa langsung dijalankan lokal tanpa server terpisah.
+Dibangun dengan **React 19 + Next.js 16 (App Router) + TypeScript + Tailwind CSS 4 + shadcn/ui + Prisma (PostgreSQL)**. Seluruh komponen antarmuka adalah komponen React murni, dan API backend (autentikasi, pesanan, driver, admin) berjalan dalam satu kodebasis yang sama sehingga bisa langsung dijalankan lokal tanpa server terpisah. Untuk deploy online (Vercel + database gratis), ikuti panduan **[DEPLOY.md](DEPLOY.md)**.
 
 ---
 
@@ -18,7 +18,7 @@ Dibangun dengan **React 19 + Next.js 16 (App Router) + TypeScript + Tailwind CSS
 
 ---
 
-## Cara Menjalankan (3 langkah)
+## Cara Menjalankan (5 langkah)
 
 ```bash
 # 1. Masuk ke folder proyek hasil ekstrak ZIP
@@ -27,13 +27,21 @@ cd komah
 # 2. Pasang dependensi (postinstall otomatis menjalankan `prisma generate`)
 npm install
 
-# 3. Jalankan server pengembangan
+# 3. Siapkan database — salin contoh env lalu isi DATABASE_URL
+#    (PostgreSQL lokal, ATAU connection string gratis dari Neon — lihat DEPLOY.md)
+cp .env.example .env
+
+# 4. Buat tabel & isi data demo (20 lokasi UNP, driver, akun, riwayat pesanan)
+npm run db:push
+npm run db:seed
+
+# 5. Jalankan server pengembangan
 npm run dev
 ```
 
 Buka **http://localhost:3000** di browser. Selesai!
 
-Database SQLite (`db/custom.db`) **sudah termasuk di dalam paket** dan sudah terisi data demo (20 lokasi UNP, 7 driver, akun demo, riwayat pesanan), jadi Anda tidak perlu melakukan apa pun lagi untuk mulai mencoba.
+> 💡 Tidak punya PostgreSQL terpasang? Cara termudah: buat database gratis di **[Neon](https://neon.tech)** (2 menit, tanpa kartu kredit), tempel connection string-nya ke `.env` — langkah detailnya ada di [DEPLOY.md](DEPLOY.md).
 
 ### Akun demo (sandi semuanya: `komah123`)
 
@@ -56,12 +64,12 @@ npm start          # Jalankan hasil build produksi (port 3000)
 npm run lint       # ESLint
 
 npm run db:generate # Menghasilkan Prisma Client (otomatis juga saat npm install)
-npm run db:push     # Membuat ulang skema database (⚠️ mengosongkan data)
+npm run db:push     # Sinkronkan skema tabel ke database (⚠️ perubahan skema bisa menghapus kolom terkait)
 npm run db:seed     # Menanam ulang data demo (20 lokasi, driver, akun, dsb.)
-npm run db:reset    # db:push + db:seed sekaligus — reset bersih ke kondisi demo
+npm run db:reset    # Hapus semua tabel + tanam ulang data demo (reset bersih)
 ```
 
-**Mulai dari nol?** Hapus `db/custom.db`, lalu jalankan `npm run db:reset`.
+**Mulai dari nol?** Cukup jalankan `npm run db:reset`.
 
 ---
 
@@ -100,8 +108,6 @@ npm run db:reset    # db:push + db:seed sekaligus — reset bersih ke kondisi de
 
 ```
 komah/
-├── db/
-│   └── custom.db              # Database SQLite (sudah terisi data demo)
 ├── prisma/
 │   ├── schema.prisma          # Skema: User, Location, SavedAddress, Order
 │   └── seed.ts                # Data demo: lokasi UNP, driver, akun, pesanan
@@ -139,7 +145,7 @@ komah/
 │   └── lib/                   # auth (scrypt+HMAC), session, fare (zona tarif),
 │                               # db (Prisma client), wa (notifikasi WhatsApp),
 │                               # types, utils
-├── .env                       # DATABASE_URL (SQLite relatif)
+├── .env                       # DATABASE_URL (PostgreSQL — lihat .env.example)
 ├── package.json
 └── next.config.ts, tsconfig.json, tailwind.config.ts, ...
 ```
@@ -154,7 +160,7 @@ komah/
 - **Autentikasi tanpa layanan luar**: password di-hash dengan `scrypt`, sesi berupa cookie bertanda tangan HMAC — tidak butuh Auth0/Supabase.
 - **Real-time ringan**: antarmuka memakai *polling* (4–8 detik) sehingga tidak memerlukan server WebSocket terpisah. Posisi driver dikirim tiap 8 detik dari dashboard driver (GPS browser; bila GPS tidak tersedia otomatis memakai simulasi yang ditandai "Posisi demo").
 - **Font**: `Plus Jakarta Sans` dimuat via `next/font/google` — dev/build pertama membutuhkan koneksi internet; setelah ter-cache, bisa offline.
-- **Upload file** (KTM/avatar) disimpan ke `public/uploads/` melalui `/api/upload` (maks 5 MB; JPG/PNG/WebP/SVG).
+- **Upload file** (KTM/avatar) disimpan ke `public/uploads/` melalui `/api/upload` (maks 5 MB; JPG/PNG/WebP/SVG). Catatan: di serverless (Vercel) filesystem bersifat sementara — file upload bisa hilang; solusi persisten (Vercel Blob) dibahas di [DEPLOY.md](DEPLOY.md).
 
 ---
 
@@ -177,6 +183,9 @@ Pastikan terhubung internet saat `npm run dev`/`build` pertama kali; Next.js aka
 
 **Lupa sandi akun demo?**
 Semua akun demo memakai `komah123`, atau reset seluruh data dengan `npm run db:reset`.
+
+**Mau deploy ke internet (gratis)?**
+Ikuti [DEPLOY.md](DEPLOY.md) — Vercel + database PostgreSQL gratis di Neon, tanpa kartu kredit.
 
 **Mau pakai Bun?**
 `bun install && bun run dev` juga berfungsi (proyek ini awalnya dikembangkan dengan Bun).

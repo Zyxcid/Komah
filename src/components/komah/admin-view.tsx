@@ -141,7 +141,7 @@ export function AdminView() {
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Kartu Tanda Mahasiswa — {preview?.name}</DialogTitle>
+            <DialogTitle>Kartu Tanda Mahasiswa: {preview?.name}</DialogTitle>
             <DialogDescription>Periksa kesesuaian nama, NIM, dan foto dengan data pendaftaran.</DialogDescription>
           </DialogHeader>
           {preview?.ktmUrl ? (

@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiCall, rupiah, useAuth } from "./lib";
@@ -115,6 +114,9 @@ export function LocationPicker({
     setPending(loc);
     setCustom(false);
     setPin(loc.lat != null && loc.lng != null ? { lat: loc.lat, lng: loc.lng } : null);
+    // Kembali ke peta agar pin lokasi terlihat — user bisa menggesernya
+    // ke posisi sebenarnya sebelum konfirmasi (fungsi utama shortcut ini).
+    if (loc.lat != null && loc.lng != null) setTab("peta");
   }
 
   function selectAddress(a: AddressT) {
@@ -231,7 +233,7 @@ export function LocationPicker({
       </button>
 
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-        <DialogContent className="max-w-md gap-0 overflow-hidden p-0 max-h-[88vh] flex flex-col">
+        <DialogContent className="max-h-[88vh] gap-0 overflow-y-auto p-0 max-w-md flex flex-col">
           <DialogHeader className="shrink-0 px-5 pt-5 pb-3 text-left">
             <DialogTitle className="text-base">Pilih {label}</DialogTitle>
             <DialogDescription className="sr-only">
@@ -239,14 +241,18 @@ export function LocationPicker({
             </DialogDescription>
           </DialogHeader>
 
-          {/* Peta — default posisimu; ketuk/geser pin untuk menandai titik */}
-          <div className="shrink-0 px-5">
-            <div className="overflow-hidden rounded-2xl border-2 border-border">
-              <div className="h-52 w-full sm:h-56">
-                <PinMap center={center} value={pin} onChange={pickPoint} />
-              </div>
+          {/* Peta hanya di tab Peta — setelah memilih dari daftar, tab pindah
+              ke sini otomatis agar pin bisa digeser ke posisi sebenarnya. */}
+          {tab === "peta" && (
+            <div className="shrink-0 px-5">
+              <PinMap center={center} value={pin} onChange={pickPoint} />
+              {pending && pin && !custom && (
+                <p className="mt-2 text-center text-[11px] leading-snug text-muted-foreground">
+                  Geser pin bila posisimu berbeda, lalu konfirmasi di bawah.
+                </p>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Tab sumber titik */}
           <div className="shrink-0 px-5 pt-3">
@@ -283,9 +289,9 @@ export function LocationPicker({
             )}
           </div>
 
-          {/* Daftar lokasi / alamat tersimpan */}
+          {/* Daftar lokasi / alamat tersimpan — scroll native (andal di layar sentuh) */}
           {tab === "lokasi" && (
-            <div className="mt-3 shrink-0 px-5">
+            <div className="shrink-0 px-5 pt-3">
               <div className="relative">
                 <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -299,7 +305,7 @@ export function LocationPicker({
             </div>
           )}
           {tab !== "peta" && (
-            <ScrollArea className="min-h-0 max-h-44 shrink-0 border-t">
+            <div className="max-h-72 overflow-y-auto overscroll-contain border-t">
               <div className="px-3 py-2.5">
                 {tab === "lokasi" && grouped.length === 0 && (
                   <p className="py-6 text-center text-sm text-muted-foreground">Lokasi tidak ditemukan.</p>
@@ -348,7 +354,7 @@ export function LocationPicker({
                   <>
                     {(addresses || []).length === 0 && (
                       <p className="py-6 text-center text-sm text-muted-foreground">
-                        Belum ada alamat tersimpan — tandai titik di peta lalu simpan.
+                        Belum ada alamat tersimpan. Tandai titik di peta lalu simpan.
                       </p>
                     )}
                     {(addresses || []).map((a) => (
@@ -363,7 +369,7 @@ export function LocationPicker({
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-semibold">
-                            {a.label} — {a.location.name}
+                            {a.label} · {a.location.name}
                           </span>
                           {a.detail && <span className="block truncate text-xs text-muted-foreground">{a.detail}</span>}
                         </span>
@@ -372,7 +378,7 @@ export function LocationPicker({
                   </>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           )}
 
           {/* Konfirmasi — menempel di bawah, selalu terlihat */}

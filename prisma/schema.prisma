@@ -3,7 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  // PostgreSQL untuk produksi (Vercel + Neon/Supabase).
+  // Untuk dev lokal: DATABASE_URL=postgresql://... di .env
+  // (sebelumnya SQLite — lihat DEPLOY.md untuk langkah migrasi)
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

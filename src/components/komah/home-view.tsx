@@ -9,7 +9,7 @@ import {
   Repeat2,
   UtensilsCrossed,
 } from "lucide-react";
-import { apiCall, navigate, rupiah, stashPrefill, STATUS_META, timeId, useApi, useAuth } from "./lib";
+import { navigate, rupiah, stashPrefill, STATUS_META, timeId, useApi, useAuth } from "./lib";
 import { StatusBadge, TypeIcon } from "./bits";
 import type { OrderT } from "@/lib/types";
 
@@ -20,7 +20,7 @@ const SERVICES = [
 ] as const;
 
 export function HomeView() {
-  const { me, activeOrder, refresh } = useAuth();
+  const { me, activeOrder } = useAuth();
   const { data: orderData } = useApi<{ orders: OrderT[] }>("/api/orders");
   const orders = orderData?.orders || [];
 
@@ -29,10 +29,6 @@ export function HomeView() {
 
   // Pesanan terakhir yang bukan pesanan aktif — calon kandidat "Pesan lagi".
   const lastOrder = activeOrder ? orders.find((o) => o.id !== activeOrder.id) || null : orders[0] || null;
-
-  // Driver terverifikasi di mode penumpang — tawaran mulai menerima pesanan.
-  const showDriverCta =
-    me?.role === "DRIVER" && me?.verifyStatus === "VERIFIED" && !activeOrder;
 
   function repeatOrder(o: OrderT) {
     stashPrefill({
@@ -45,16 +41,6 @@ export function HomeView() {
       passengerNote: o.passengerNote || "",
     });
     navigate(`/pesan?type=${o.type}`);
-  }
-
-  async function startDriving() {
-    const { ok, data } = await apiCall("/api/profile", "PATCH", { appMode: "DRIVER" });
-    if (!ok) {
-      navigate("/mode-driver");
-      return;
-    }
-    await refresh();
-    navigate("/mode-driver");
   }
 
   return (
@@ -75,7 +61,7 @@ export function HomeView() {
             <div className="flex min-w-0 items-center gap-2.5">
               <span className="relative flex h-3 w-3 shrink-0 rounded-full bg-unp text-unp pulse-ring" />
               <span className="truncate text-sm font-extrabold text-unp-dark">
-                {STATUS_META[activeOrder.status].short} — {activeOrder.code}
+                {STATUS_META[activeOrder.status].short} · {activeOrder.code}
               </span>
             </div>
             <ChevronRight size={18} className="shrink-0 text-unp" />
@@ -166,23 +152,6 @@ export function HomeView() {
             </button>
           </div>
         </section>
-      )}
-
-      {/* Driver di mode penumpang — tawaran mulai menerima pesanan */}
-      {showDriverCta && (
-        <button
-          onClick={startDriving}
-          className="flex w-full items-center gap-3.5 rounded-3xl border-2 border-dashed border-unp/40 bg-unp-soft/30 p-5 text-left transition-all hover:border-unp hover:bg-unp-soft/50"
-        >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-unp to-unp-dark text-white shadow-md">
-            <Bike size={22} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-extrabold text-unp-deep">Punya waktu luang?</span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">Mulai terima pesanan di dashboard driver.</span>
-          </span>
-          <ChevronRight size={18} className="shrink-0 text-unp" />
-        </button>
       )}
 
       {/* Satu baris info fungsi — bukan blok promosi */}

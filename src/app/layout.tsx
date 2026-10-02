@@ -11,7 +11,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "KOMAH — Ojek & Antar Daring Civitas UNP",
+  title: "KOMAH · Ojek & Antar Daring Civitas UNP",
   description:
     "Layanan ojek dan pengantaran barang & makanan khusus civitas UNP. Tarif transparan mulai Rp6.000, driver mahasiswa terverifikasi KTM.",
   keywords: ["KOMAH", "UNP", "ojek kampus", "antar barang", "Padang"],

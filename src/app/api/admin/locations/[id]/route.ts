@@ -54,11 +54,11 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
       select: { id: true },
     });
     if (used) {
-      return NextResponse.json({ error: "Lokasi masih dipakai riwayat pesanan — tidak bisa dihapus." }, { status: 409 });
+      return NextResponse.json({ error: "Lokasi masih dipakai riwayat pesanan, tidak bisa dihapus." }, { status: 409 });
     }
     const usedAddr = await db.savedAddress.findFirst({ where: { locationId: id }, select: { id: true } });
     if (usedAddr) {
-      return NextResponse.json({ error: "Lokasi masih dipakai alamat tersimpan pengguna — hapus alamatnya dulu." }, { status: 409 });
+      return NextResponse.json({ error: "Lokasi masih dipakai alamat tersimpan pengguna, hapus alamatnya dulu." }, { status: 409 });
     }
     await db.location.delete({ where: { id } });
     return NextResponse.json({ message: "Lokasi dihapus." });

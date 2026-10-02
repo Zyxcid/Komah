@@ -63,12 +63,19 @@ const driverIcon = L.divIcon({
 
 // ---------- Util kecil di dalam peta ----------
 
-/** Sesuaikan ukuran peta setelah mount (penting di dalam Dialog yang dianimasikan). */
+/** Sesuaikan ukuran peta saat kontainer berubah (animasi buka Dialog yang
+ *  menskalakan konten, rotasi layar, dsb.) — invalidateSize setiap resize. */
 function ResizeOnMount() {
   const map = useMap();
   useEffect(() => {
+    const el = map.getContainer();
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(el);
     const t = setTimeout(() => map.invalidateSize(), 250);
-    return () => clearTimeout(t);
+    return () => {
+      ro.disconnect();
+      clearTimeout(t);
+    };
   }, [map]);
   return null;
 }

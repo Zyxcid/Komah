@@ -70,12 +70,25 @@ export function navigate(path: string, replace = false) {
 }
 
 export function useRoute() {
-  const [state, setState] = useState(() => parseHash());
+  // Render pertama HARUS identik antara server & client — kalau tidak,
+  // React melempar hydration error saat halaman di-load ulang dengan hash
+  // di URL (mis. refresh di #/admin: server merender landing, client
+  // merender admin). Karena itu state awal selalu landing; hash asli
+  // disinkronkan segera setelah mount di client (post-hydration, aman).
+  const [state, setState] = useState<ReturnType<typeof parseHash>>({
+    route: { name: "landing" },
+    query: new URLSearchParams(),
+  });
+
   useEffect(() => {
+    let first = true;
     const onChange = () => {
       setState(parseHash());
-      window.scrollTo({ top: 0 });
+      // Gulir ke atas hanya saat pindah route, bukan saat sinkronisasi awal.
+      if (!first) window.scrollTo({ top: 0 });
+      first = false;
     };
+    onChange(); // sinkronisasi pertama ke hash URL saat ini
     window.addEventListener("hashchange", onChange);
     return () => window.removeEventListener("hashchange", onChange);
   }, []);

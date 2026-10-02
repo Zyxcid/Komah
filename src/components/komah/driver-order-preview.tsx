@@ -136,7 +136,7 @@ export function DriverOrderPreview({
 
           <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <MapPin size={12} className="text-unp" />
-            Pin mengikuti titik yang ditandai penumpang — perhatikan detailnya.
+            Pin mengikuti titik yang ditandai penumpang, perhatikan detailnya.
           </p>
         </div>
 

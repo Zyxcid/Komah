@@ -88,7 +88,7 @@ export function waOrderStarted(o: { code: string; destName: string; fare: number
 /** Pesan ke penumpang: pesanan selesai. */
 export function waOrderCompleted(o: { code: string; fare: number }) {
   return [
-    "[KOMAH] Pesanan selesai — terima kasih!",
+    "[KOMAH] Pesanan selesai, terima kasih!",
     `${o.code} • Tarif ${rupiahWA(o.fare)} (tunai).`,
     "Beri rating drivemu di aplikasi KOMAH ya.",
   ].join("\n");
@@ -96,7 +96,7 @@ export function waOrderCompleted(o: { code: string; fare: number }) {
 
 /** Pesan ke driver terkait: pesanan dibatalkan penumpang. */
 export function waOrderCancelled(o: { code: string }) {
-  return [`[KOMAH] Pesanan ${o.code} dibatalkan penumpang.`, "Maaf atas kendalanya — cek pesanan lain di aplikasi."].join("\n");
+  return [`[KOMAH] Pesanan ${o.code} dibatalkan penumpang.`, "Maaf atas kendalanya, cek pesanan lain di aplikasi."].join("\n");
 }
 
 /** Pesan ke admin: ada driver baru mendaftar. */

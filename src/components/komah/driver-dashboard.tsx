@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   BadgeCheck,
   Bike,
-  Check,
   Inbox,
   Loader2,
   MapPin,
@@ -304,27 +303,6 @@ export function DriverDashboardView() {
           </div>
         )}
       </section>
-
-      {/* Pesan sebagai penumpang — simpan mode agar aplikasi terbuka di beranda */}
-      <Button
-        onClick={async () => {
-          const { ok, data: res } = await apiCall("/api/profile", "PATCH", { appMode: "PENUMPANG" });
-          if (!ok) {
-            toast({ title: "Gagal pindah mode", description: res.error, variant: "destructive" });
-            return;
-          }
-          await refresh();
-          navigate("/beranda");
-          toast({
-            title: "Beralih ke Mode Penumpang",
-            description: "Aplikasi juga akan membuka mode ini saat kamu masuk nanti.",
-          });
-        }}
-        variant="outline"
-        className="h-12 w-full gap-2 border-2 font-bold"
-      >
-        <Check size={16} /> Pesan sebagai penumpang
-      </Button>
 
       {/* Pratinjau pesanan masuk (peta + titik penumpang) */}
       <DriverOrderPreview

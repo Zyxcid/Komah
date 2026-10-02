@@ -248,7 +248,7 @@ export function RegisterView({ initialRole }: { initialRole?: "USER" | "DRIVER" 
   return (
     <AuthLayout
       title="Buat akun KOMAH"
-      subtitle="Khusus civitas UNP — pastikan NIM/NIP kamu aktif. Driver akan diverifikasi KTM oleh admin."
+      subtitle="Khusus civitas UNP, pastikan NIM/NIP kamu aktif. Driver akan diverifikasi KTM oleh admin."
     >
       <div className="grid grid-cols-2 gap-3">
         {roleCards.map((rc) => (
@@ -336,7 +336,7 @@ export function RegisterView({ initialRole }: { initialRole?: "USER" | "DRIVER" 
                 )}
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-bold">
-                    {uploading ? "Mengunggah KTM…" : ktmUrl ? "KTM terunggah — klik untuk ganti" : "Unggah foto KTM (JPG/PNG, maks 5 MB)"}
+                    {uploading ? "Mengunggah KTM…" : ktmUrl ? "KTM terunggah, klik untuk ganti" : "Unggah foto KTM (JPG/PNG, maks 5 MB)"}
                   </span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">
                     Dipakai admin untuk memverifikasi identitas mahasiswamu
@@ -358,7 +358,7 @@ export function RegisterView({ initialRole }: { initialRole?: "USER" | "DRIVER" 
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        Sudah punya akun penumpang? Tak perlu mendaftar ulang —{" "}
+        Sudah punya akun penumpang? Tak perlu mendaftar ulang, cukup{" "}
         <span className="font-semibold text-foreground">daftar sebagai driver kapan saja lewat menu Profil.</span>
       </p>
     </AuthLayout>

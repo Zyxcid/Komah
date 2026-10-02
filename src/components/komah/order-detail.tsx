@@ -48,7 +48,7 @@ const TIMELINE = [
   { key: "MENCARI", label: "Pesanan dibuat, mencari driver", timeKey: "createdAt" as const, icon: ClipboardList },
   { key: "DIKONFIRMASI", label: "Driver ditemukan, menuju titik jemput", timeKey: "acceptedAt" as const, icon: Navigation },
   { key: "BERJALAN", label: "Dalam perjalanan ke tujuan", timeKey: "startedAt" as const, icon: Bike },
-  { key: "SELESAI", label: "Pesanan selesai — sampai tujuan", timeKey: "completedAt" as const, icon: Check },
+  { key: "SELESAI", label: "Pesanan selesai, sampai tujuan", timeKey: "completedAt" as const, icon: Check },
 ];
 
 export function OrderDetailView({ code }: { code: string }) {
@@ -154,7 +154,7 @@ export function OrderDetailView({ code }: { code: string }) {
             <MapPin size={20} />
           </span>
           <p className="text-sm font-semibold text-muted-foreground">
-            Peta belum tersedia untuk rute ini — lihat detail titik jemput & tujuan di bawah.
+            Peta belum tersedia untuk rute ini. Lihat detail titik jemput & tujuan di bawah.
           </p>
         </div>
       )}
@@ -180,7 +180,7 @@ export function OrderDetailView({ code }: { code: string }) {
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-extrabold text-red-600">Pesanan dibatalkan</p>
           <p className="mt-0.5 text-xs text-red-500">
-            Dibatalkan {order.cancelledAt ? `pada ${dateId(order.cancelledAt)} ${timeId(order.cancelledAt)} WIB` : ""} — tidak ada biaya yang dikenakan.
+            Dibatalkan {order.cancelledAt ? `pada ${dateId(order.cancelledAt)} ${timeId(order.cancelledAt)} WIB` : ""}. Tidak ada biaya yang dikenakan.
           </p>
         </div>
       )}
@@ -202,7 +202,7 @@ export function OrderDetailView({ code }: { code: string }) {
               </div>
             </div>
             <a
-              href={waLink(order.driver.phone, `Halo, saya ${order.user?.name || "penumpang"} — penumpang KOMAH ${order.code}.`) || undefined}
+              href={waLink(order.driver.phone, `Halo, saya ${order.user?.name || "penumpang"}, penumpang KOMAH ${order.code}.`) || undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-11 w-11 items-center justify-center rounded-full bg-unp text-white shadow-md transition-transform hover:scale-105"
@@ -212,7 +212,7 @@ export function OrderDetailView({ code }: { code: string }) {
             </a>
           </div>
           <p className="mt-3 flex items-center gap-1.5 rounded-xl bg-unp-soft px-3 py-2 text-[11px] font-semibold text-unp-dark">
-            <ShieldQuestion size={13} /> Driver terverifikasi KTM — identitas mahasiswa UNP aktif.
+            <ShieldQuestion size={13} /> Driver terverifikasi KTM, identitas mahasiswa UNP aktif.
           </p>
         </div>
       ) : order.status !== "DIBATALKAN" ? (
@@ -343,7 +343,7 @@ export function OrderDetailView({ code }: { code: string }) {
                 <AlertDialogDescription>
                   {order.status === "MENCARI"
                     ? "Pesananmu belum diterima driver. Pembatalan tidak dikenakan biaya apa pun."
-                    : "Driver sudah menuju titik jemput. Mohon batalkan hanya jika benar-benar diperlukan — driver sudah meluangkan waktu."}
+                    : "Driver sudah menuju titik jemput. Mohon batalkan hanya jika benar-benar diperlukan. Driver sudah meluangkan waktu."}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
