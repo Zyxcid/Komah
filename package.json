@@ -4,14 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
+    "predev": "node scripts/select-schema.mjs",
     "build": "next build",
+    "prebuild": "node scripts/select-schema.mjs",
     "start": "next start -p 3000",
     "lint": "eslint .",
-    "db:push": "prisma db push --accept-data-loss",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma db push --force-reset && npx -y tsx prisma/seed.ts",
-    "db:seed": "npx -y tsx prisma/seed.ts"
+    "postinstall": "node scripts/select-schema.mjs",
+    "db:push": "node scripts/select-schema.mjs --push",
+    "db:generate": "node scripts/select-schema.mjs",
+    "db:reset": "node scripts/select-schema.mjs --force-reset && npx -y tsx prisma/seed.ts",
+    "db:seed": "node scripts/select-schema.mjs && npx -y tsx prisma/seed.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -79,6 +81,7 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
     "vaul": "^1.1.2",
+    "web-push": "^3.6.7",
     "z-ai-web-dev-sdk": "^0.0.18",
     "zod": "^4.0.2",
     "zustand": "^5.0.6"
@@ -88,6 +91,7 @@
     "@types/leaflet": "^1.9.22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "bun-types": "^1.3.4",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",

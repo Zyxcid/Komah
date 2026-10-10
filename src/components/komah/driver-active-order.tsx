@@ -20,7 +20,7 @@ import { useOsmrRoute } from "./use-route";
 import type { LatLng } from "./map-core";
 import type { OrderT } from "@/lib/types";
 
-const UNP = "#0E7A3E";
+const UNP = "#B45309";
 const GOLD = "#F5B301";
 
 export function DriverActiveOrder({
@@ -83,7 +83,7 @@ export function DriverActiveOrder({
                 <span
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-extrabold transition-colors",
-                    i < stepIdx ? "bg-unp text-white" : i === stepIdx ? "bg-unp text-white ring-4 ring-unp/20" : "bg-muted text-muted-foreground"
+                    i < stepIdx ? "bg-gold text-unp-deep" : i === stepIdx ? "bg-gold text-unp-deep ring-4 ring-gold/30" : "bg-muted text-muted-foreground"
                   )}
                 >
                   {i < stepIdx ? <Check size={14} /> : <span className="tabular-nums">{i + 1}</span>}
@@ -98,7 +98,7 @@ export function DriverActiveOrder({
                 </span>
               </div>
               {i < steps.length - 1 && (
-                <div className={cn("mx-2.5 h-1 w-5 shrink-0 rounded-full sm:mx-4 sm:w-10", i < stepIdx ? "bg-unp" : "bg-muted")} />
+                <div className={cn("mx-2.5 h-1 w-5 shrink-0 rounded-full sm:mx-4 sm:w-10", i < stepIdx ? "bg-gold" : "bg-muted")} />
               )}
             </div>
           ))}
@@ -110,7 +110,7 @@ export function DriverActiveOrder({
         <Button
           onClick={() => onAct(order.id, "start")}
           disabled={busyThis}
-          className="h-14 w-full gap-2 bg-unp text-base font-extrabold hover:bg-unp-dark"
+          className="h-14 w-full gap-2 bg-gold text-base font-extrabold hover:bg-gold-dark"
         >
           {busyThis ? <Loader2 size={18} className="animate-spin" /> : <Bike size={18} />}
           Penumpang Sudah Naik
@@ -119,7 +119,7 @@ export function DriverActiveOrder({
         <Button
           onClick={() => onAct(order.id, "complete")}
           disabled={busyThis}
-          className="h-14 w-full gap-2 bg-gold text-base font-extrabold text-unp-deep hover:bg-gold-dark hover:text-white"
+          className="h-14 w-full gap-2 bg-gold text-base font-extrabold text-unp-deep hover:bg-gold-dark"
         >
           {busyThis ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
           Selesaikan Pesanan (+{rupiah(order.fare - 1000)})

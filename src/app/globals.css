@@ -42,49 +42,49 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Warna khas KOMAH (identitas UNP: hijau + emas) */
+  /* Warna khas KOMAH (identitas UNP: emas + oranye/amber) */
   --color-gold: #F5B301;
   --color-gold-dark: #C98F00;
   --color-gold-soft: #FDF3D7;
-  --color-unp: #0E7A3E;
-  --color-unp-dark: #0A5C2E;
-  --color-unp-deep: #07451F;
-  --color-unp-soft: #E7F4EC;
+  --color-unp: #B45309;
+  --color-unp-dark: #92400E;
+  --color-unp-deep: #453000;
+  --color-unp-soft: #FDF3D7;
 }
 
 :root {
   --radius: 0.85rem;
-  --background: #FAFCFB;
-  --foreground: #12241A;
+  --background: #FDFBF5;
+  --foreground: #2A2412;
   --card: #FFFFFF;
-  --card-foreground: #12241A;
+  --card-foreground: #2A2412;
   --popover: #FFFFFF;
-  --popover-foreground: #12241A;
-  --primary: #0E7A3E;
-  --primary-foreground: #FFFFFF;
-  --secondary: #E7F4EC;
-  --secondary-foreground: #0A5C2E;
-  --muted: #F0F6F2;
-  --muted-foreground: #5C6E62;
-  --accent: #E7F4EC;
-  --accent-foreground: #0A5C2E;
+  --popover-foreground: #2A2412;
+  --primary: #F5B301;
+  --primary-foreground: #3F2D00;
+  --secondary: #FDF3D7;
+  --secondary-foreground: #92400E;
+  --muted: #F8F3E6;
+  --muted-foreground: #7A7160;
+  --accent: #FDF3D7;
+  --accent-foreground: #92400E;
   --destructive: #DC2626;
-  --border: #E3EDE7;
-  --input: #D7E5DC;
-  --ring: #0E7A3E;
-  --chart-1: #0E7A3E;
-  --chart-2: #F5B301;
-  --chart-3: #34A853;
+  --border: #EDE5CF;
+  --input: #E3D7B8;
+  --ring: #B45309;
+  --chart-1: #F5B301;
+  --chart-2: #B45309;
+  --chart-3: #D97706;
   --chart-4: #C98F00;
-  --chart-5: #7BC896;
+  --chart-5: #FCD34D;
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #12241A;
-  --sidebar-primary: #0E7A3E;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E7F4EC;
-  --sidebar-accent-foreground: #0A5C2E;
-  --sidebar-border: #E3EDE7;
-  --sidebar-ring: #0E7A3E;
+  --sidebar-foreground: #2A2412;
+  --sidebar-primary: #F5B301;
+  --sidebar-primary-foreground: #3F2D00;
+  --sidebar-accent: #FDF3D7;
+  --sidebar-accent-foreground: #92400E;
+  --sidebar-border: #EDE5CF;
+  --sidebar-ring: #B45309;
 }
 
 @layer base {
@@ -109,11 +109,11 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #C8DCCE;
+  background: #E6D9AF;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9FC4AB;
+  background: #D8C684;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -178,16 +178,16 @@
   animation: pulse-ring 1.8s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
 }
 
-/* Marker driver di peta Leaflet — denyut hijau UNP */
+/* Marker driver di peta Leaflet — denyut emas KOMAH */
 @keyframes komah-marker-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(14, 122, 62, 0.45);
+    box-shadow: 0 0 0 0 rgba(180, 83, 9, 0.5);
   }
   70% {
-    box-shadow: 0 0 0 16px rgba(14, 122, 62, 0);
+    box-shadow: 0 0 0 16px rgba(180, 83, 9, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(14, 122, 62, 0);
+    box-shadow: 0 0 0 0 rgba(180, 83, 9, 0);
   }
 }
 .komah-driver-marker {

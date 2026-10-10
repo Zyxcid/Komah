@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser, toSafeUser } from "@/lib/session";
-import { sendWA, waDriverRegistered } from "@/lib/wa";
+import { msgDriverRegistered, sendPushToUser } from "@/lib/push";
 
 export async function PATCH(req: NextRequest) {
   const user = await getCurrentUser();
@@ -61,9 +61,9 @@ export async function PATCH(req: NextRequest) {
         // Mode tidak diubah — penumpang tetap di beranda, tak ada kejutan.
       },
     });
-    const admins = await db.user.findMany({ where: { role: "ADMIN" }, select: { phone: true } });
-    const msg = waDriverRegistered({ name: user.name, vehicle: vehicleType.trim() });
-    for (const a of admins) sendWA(a.phone, msg);
+    const admins = await db.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
+    const msg = msgDriverRegistered({ name: user.name, vehicle: vehicleType.trim() });
+    await Promise.all(admins.map((a) => sendPushToUser(a.id, msg).catch(() => {})));
     return NextResponse.json({
       user: toSafeUser(updated),
       message: "Pendaftaran driver terkirim! Menunggu verifikasi KTM oleh admin (maks. 1x24 jam).",

@@ -11,15 +11,15 @@ export function LogoKOMAH({ dark = false, size = "md" }: { dark?: boolean; size?
   const text = size === "sm" ? "text-lg" : size === "lg" ? "text-2xl" : "text-xl";
   return (
     <div className="flex items-center gap-2.5">
-      <div className={cn("relative flex items-center justify-center bg-gradient-to-br from-unp to-unp-dark shadow-md shrink-0", box)}>
-        <Bike size={icon} className="text-white" strokeWidth={2.4} />
-        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-gold ring-2 ring-white" aria-hidden />
+      <div className={cn("relative flex items-center justify-center bg-gradient-to-br from-gold to-gold-dark shadow-md shrink-0", box)}>
+        <Bike size={icon} className="text-unp-deep" strokeWidth={2.4} />
+        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-white ring-2 ring-white" aria-hidden />
       </div>
       <div className="leading-none">
         <div className={cn("font-extrabold tracking-tight", text, dark ? "text-white" : "text-unp-deep")}>
           KOMAH
         </div>
-        <div className={cn("mt-1 text-[10px] font-semibold uppercase tracking-widest", dark ? "text-green-200/80" : "text-unp/70")}>
+        <div className={cn("mt-1 text-[10px] font-semibold uppercase tracking-widest", dark ? "text-amber-100/80" : "text-unp/70")}>
           Ojek &middot; Antar &middot; UNP
         </div>
       </div>
@@ -38,7 +38,7 @@ export function UserAvatar({
   className?: string;
   size?: number;
 }) {
-  const palette = ["#0E7A3E", "#C98F00", "#07451F", "#2E8B57", "#B8860B", "#3CB371"];
+  const palette = ["#B45309", "#C98F00", "#92400E", "#D97706", "#A16207", "#8A5A00"];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % 997;
   const color = palette[hash % palette.length];
@@ -78,8 +78,8 @@ export function StatusBadge({ status }: { status: OrderStatus }) {
   const map: Record<OrderStatus, string> = {
     MENCARI: "bg-amber-50 text-amber-700 border-amber-200",
     DIKONFIRMASI: "bg-blue-50 text-blue-700 border-blue-200",
-    BERJALAN: "bg-unp-soft text-unp-dark border-green-200",
-    SELESAI: "bg-green-50 text-unp border-green-200",
+    BERJALAN: "bg-unp-soft text-unp-dark border-amber-200",
+    SELESAI: "bg-gold-soft text-unp border-amber-200",
     DIBATALKAN: "bg-red-50 text-red-600 border-red-200",
   };
   const icon =
@@ -155,7 +155,7 @@ export function PointRow({
 export function OnlineDot({ online }: { online: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-semibold">
-      <span className={cn("relative flex h-2.5 w-2.5 rounded-full", online ? "bg-green-500 text-green-500" : "bg-gray-300 text-gray-300", online && "pulse-ring")} />
+      <span className={cn("relative flex h-2.5 w-2.5 rounded-full", online ? "bg-unp text-unp" : "bg-gray-300 text-gray-300", online && "pulse-ring")} />
       {online ? <span className="text-unp-dark">Online</span> : <span className="text-muted-foreground">Offline</span>}
     </span>
   );

@@ -140,7 +140,7 @@ export function LoginView() {
             />
           </div>
         </div>
-        <Button type="submit" disabled={busy} className="h-12 w-full bg-unp text-base font-extrabold hover:bg-unp-dark">
+        <Button type="submit" disabled={busy} className="h-12 w-full bg-gold text-base font-extrabold hover:bg-gold-dark">
           {busy ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />} Masuk
         </Button>
       </form>
@@ -351,7 +351,7 @@ export function RegisterView({ initialRole }: { initialRole?: "USER" | "DRIVER" 
           </div>
         )}
 
-        <Button type="submit" disabled={busy || uploading} className="h-12 w-full bg-unp text-base font-extrabold hover:bg-unp-dark">
+        <Button type="submit" disabled={busy || uploading} className="h-12 w-full bg-gold text-base font-extrabold hover:bg-gold-dark">
           {busy ? <Loader2 size={18} className="animate-spin" /> : <BadgeCheck size={18} />}
           {role === "DRIVER" ? "Daftar & Kirim Verifikasi" : "Daftar Sekarang"}
         </Button>

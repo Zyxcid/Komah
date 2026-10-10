@@ -1,6 +1,6 @@
 # KOMAH — Ojek & Antar Daring Civitas UNP
 
-Aplikasi web bergaya **Gojek kampus** untuk warga Universitas Negeri Padang (UNP): pesan ojek penumpang, titip antar barang, dan pesan makanan kantin dengan **tarif transparan sejak awal** dan **pembayaran tunai saat tiba**. Driver adalah mahasiswa UNP terverifikasi KTM. Dilengkapi **peta OpenStreetMap** (pin jemput presisi + pelacakan posisi driver live) dan **notifikasi WhatsApp**.
+Aplikasi web bergaya **Gojek kampus** untuk warga Universitas Negeri Padang (UNP): pesan ojek penumpang, titip antar barang, dan pesan makanan kantin dengan **tarif transparan sejak awal** dan **pembayaran tunai saat tiba**. Driver adalah mahasiswa UNP terverifikasi KTM. Dilengkapi **peta OpenStreetMap** (pin jemput presisi + pelacakan posisi driver live) dan **notifikasi push**.
 
 Dibangun dengan **React 19 + Next.js 16 (App Router) + TypeScript + Tailwind CSS 4 + shadcn/ui + Prisma (PostgreSQL)**. Seluruh komponen antarmuka adalah komponen React murni, dan API backend (autentikasi, pesanan, driver, admin) berjalan dalam satu kodebasis yang sama sehingga bisa langsung dijalankan lokal tanpa server terpisah. Untuk deploy online (Vercel + database gratis), ikuti panduan **[DEPLOY.md](DEPLOY.md)**.
 
@@ -18,30 +18,26 @@ Dibangun dengan **React 19 + Next.js 16 (App Router) + TypeScript + Tailwind CSS
 
 ---
 
-## Cara Menjalankan (5 langkah)
+## Cara Menjalankan (2 langkah, offline)
 
 ```bash
 # 1. Masuk ke folder proyek hasil ekstrak ZIP
 cd komah
 
-# 2. Pasang dependensi (postinstall otomatis menjalankan `prisma generate`)
+# 2. Pasang dependensi lalu jalankan
 npm install
-
-# 3. Siapkan database — salin contoh env lalu isi DATABASE_URL
-#    (PostgreSQL lokal, ATAU connection string gratis dari Neon — lihat DEPLOY.md)
-cp .env.example .env
-
-# 4. Buat tabel & isi data demo (20 lokasi UNP, driver, akun, riwayat pesanan)
-npm run db:push
-npm run db:seed
-
-# 5. Jalankan server pengembangan
 npm run dev
 ```
 
 Buka **http://localhost:3000** di browser. Selesai!
 
-> 💡 Tidak punya PostgreSQL terpasang? Cara termudah: buat database gratis di **[Neon](https://neon.tech)** (2 menit, tanpa kartu kredit), tempel connection string-nya ke `.env` — langkah detailnya ada di [DEPLOY.md](DEPLOY.md).
+> 📦 `.env` beserta database demo (`db/custom.db`, mode SQLite offline) sudah
+> termasuk di ZIP — tanpa setup apa pun, tanpa internet setelah `npm install`.
+>
+> 💡 Ingin langsung memakai PostgreSQL/Neon (mis. untuk deploy)? Ganti
+> `DATABASE_URL` di `.env` dengan connection string dari
+> **[Neon](https://neon.tech)** lalu `npm run db:push` — langkah detailnya di
+> [DEPLOY.md](DEPLOY.md). Mode database dipilih otomatis dari isi `DATABASE_URL`.
 
 ### Akun demo (sandi semuanya: `komah123`)
 
@@ -88,10 +84,12 @@ npm run db:reset    # Hapus semua tabel + tanam ulang data demo (reset bersih)
 - Pendaftaran dengan upload KTM → menunggu verifikasi admin
 - Toggle online/offline, pesanan masuk real-time, aksi terima/mulai/selesai, statistik pendapatan & perjalanan
 - **Kirim posisi otomatis** saat ada pesanan aktif: GPS browser bila tersedia, atau mode simulasi (ditandai "Posisi demo") bila GPS tidak aktif — penumpang selalu melihat driver bergerak di peta
+- **Notifikasi pesanan baru (Web Push)**: bunyi "ding-dong" + getar saat dashboard terbuka, dan notifikasi sistem/layar yang tetap masuk walau tab/aplikasi KOMAH ditutup — toggle "Notifikasi pesanan" di dashboard driver (panduan uji: [DEPLOY.md](DEPLOY.md))
 
-**Notifikasi WhatsApp** (via [Fonnte](https://fonnte.com))
+**Notifikasi push untuk semua peran** (Web Push — tanpa gateway WhatsApp, gratis)
 - Pesanan baru → semua driver online; driver menerima/mulai/selesai → penumpang; driver baru mendaftar → admin; hasil verifikasi → driver
-- Tanpa `FONNTE_TOKEN`, aplikasi tetap normal — pesan WA hanya dicetak ke log server (mode dev). Isi token di `.env` untuk pengiriman sungguhan
+- Penumpang menyalakannya dari kartu **Notifikasi Pesanan** di halaman Profil; driver dari toggle **Notifikasi pesanan** di dashboard (plus bunyi "ding-dong" saat terbuka). Tanpa kunci VAPID di `.env`, pesan hanya dicetak ke log server (mode dev)
+- Chat penumpang ↔ driver tetap langsung lewat tautan WhatsApp (wa.me) di halaman pesanan — tanpa gateway, tanpa biaya
 
 **Untuk admin (role ADMIN)**
 - Panel verifikasi calon driver: pratinjau KTM, setujui atau tolak
@@ -109,11 +107,18 @@ npm run db:reset    # Hapus semua tabel + tanam ulang data demo (reset bersih)
 ```
 komah/
 ├── prisma/
-│   ├── schema.prisma          # Skema: User, Location, SavedAddress, Order
+│   ├── schema.prisma          # Skema PostgreSQL (produksi): User, Location,
+│   │                          # SavedAddress, Order, Setting, PushSubscription
+│   ├── schema.local.prisma    # Varian SQLite (dev offline) — dipilih otomatis
 │   └── seed.ts                # Data demo: lokasi UNP, driver, akun, pesanan
 ├── public/
 │   ├── logo.svg               # Logo KOMAH
+│   ├── sw.js                  # Service worker: cache shell + Web Push driver
+│   ├── manifest.webmanifest   # Manifest PWA (Tambah ke Layar Utama)
 │   └── uploads/               # Hasil upload KTM/avatar (via API)
+├── scripts/
+│   ├── select-schema.mjs      # Pilih SQLite/PostgreSQL otomatis dari .env
+│   └── push-test.mjs          # Uji kirim Web Push tanpa membuat pesanan
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx         # Root layout (font Plus Jakarta Sans)
@@ -125,6 +130,7 @@ komah/
 │   │       ├── driver/        # dashboard & status driver
 │   │       ├── admin/         # verifikasi driver
 │   │       ├── profile/       # profil + alamat tersimpan
+│   │       ├── push/          # langganan Web Push (config/subscribe/unsubscribe)
 │   │       └── locations/, upload/, drivers/
 │   ├── components/
 │   │   ├── komah/             # Komponen aplikasi KOMAH
@@ -139,13 +145,17 @@ komah/
 │   │   │   ├── history-view.tsx, profile-view.tsx
 │   │   │   ├── driver-dashboard.tsx, admin-view.tsx
 │   │   │   ├── location-picker.tsx # Pemilih lokasi + estimasi tarif live
+│   │   │   ├── push.ts        # Helper Web Push klien (langganan + bunyi)
+│   │   │   ├── push-toggle.tsx # Kartu toggle notifikasi di halaman Profil
 │   │   │   └── lib.tsx, bits.tsx   # Router hash & komponen kecil bersama
 │   │   └── ui/                # Komponen shadcn/ui
 │   ├── hooks/                 # use-mobile, use-toast
 │   └── lib/                   # auth (scrypt+HMAC), session, fare (zona tarif),
-│                               # db (Prisma client), wa (notifikasi WhatsApp),
+│                               # db (Prisma client),
+│                               # push (pengirim Web Push sisi server),
 │                               # types, utils
-├── .env                       # DATABASE_URL (PostgreSQL — lihat .env.example)
+├── db/custom.db               # Database SQLite demo (dev offline)
+├── .env                       # DATABASE_URL + kunci VAPID (siap pakai)
 ├── package.json
 └── next.config.ts, tsconfig.json, tailwind.config.ts, ...
 ```
@@ -156,7 +166,7 @@ komah/
 
 - **Peta gratis tanpa API key**: [Leaflet](https://leafletjs.com) + tile [OpenStreetMap](https://www.openstreetmap.org) + rute jalan dari [OSRM demo server](https://router.project-osrm.org) — semuanya tanpa biaya dan tanpa kartu kredit. Jika server OSRM tidak terjangkau, peta otomatis beralih ke garis lurus antar titik.
 - **Koordinat lokasi** di `prisma/seed.ts` adalah titik approx di sekitar kampus UNP Air Tawar untuk keperluan demo — presisikan langsung di file tersebut lalu `npm run db:reset`.
-- **Notifikasi WhatsApp** memakai gateway [Fonnte](https://fonnte.com) (asal Indonesia, biaya sangat rendah). Atur `FONNTE_TOKEN` di `.env` untuk mengirim sungguhan; pesan dikirim *fire-and-forget* sehingga tidak memperlambat respons API.
+- **Notifikasi push (menggantikan gateway WhatsApp)**: memakai standar Web Push + VAPID (tanpa layanan berbayar). Driver berlangganan lewat toggle di dashboard, penumpang lewat kartu Notifikasi Pesanan di Profil — keduanya lewat service worker (`public/sw.js`); server mengirim lewat `src/lib/push.ts` saat pesanan dibuat/diupdate. Langganan kadaluarsa otomatis dibersihkan. Di Android Chrome notifikasi masuk seperti aplikasi biasa walau browser ditutup; di iPhone butuh iOS 16.4+ dan KOMAH dipasang ke layar utama (PWA).
 - **Autentikasi tanpa layanan luar**: password di-hash dengan `scrypt`, sesi berupa cookie bertanda tangan HMAC — tidak butuh Auth0/Supabase.
 - **Real-time ringan**: antarmuka memakai *polling* (4–8 detik) sehingga tidak memerlukan server WebSocket terpisah. Posisi driver dikirim tiap 8 detik dari dashboard driver (GPS browser; bila GPS tidak tersedia otomatis memakai simulasi yang ditandai "Posisi demo").
 - **Font**: `Plus Jakarta Sans` dimuat via `next/font/google` — dev/build pertama membutuhkan koneksi internet; setelah ter-cache, bisa offline.
@@ -175,8 +185,15 @@ Jalankan `npm run db:generate` lalu mulai ulang `npm run dev`.
 **Ingin mengubah/menambah lokasi UNP atau tarif?**
 Edit daftar lokasi (beserta koordinat `lat`/`lng`) di `prisma/seed.ts`, lalu `npm run db:reset`. Tarif antar-zona dihitung otomatis di `src/lib/fare.ts`.
 
-**Notifikasi WA tidak terkirim?**
-Tanpa `FONNTE_TOKEN`, pesan hanya muncul di log server (cari `[WA-DEV]` di terminal `npm run dev`). Dengan token, pastikan nomor HP tersimpan dalam format Indonesia (08xx) dan nomor target sudah terdaftar di dashboard Fonnte.
+**Notifikasi push tidak muncul?**
+1. Pastikan toggle notifikasi menyala (driver: di dashboard; penumpang: kartu Notifikasi Pesanan di Profil) dan izin notifikasi browser diizinkan (ikon kunci di address bar).
+2. Jalankan `node scripts/push-test.mjs` untuk uji kirim tanpa membuat pesanan.
+3. Cek `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` terisi di `.env` (atau di Vercel Environment Variables bila versi deploy).
+4. iPhone: pasang dulu KOMAH ke layar utama (Bagikan → Tambah ke Layar Utama), iOS 16.4+.
+5. Mode incognito tidak bisa menerima push — pakai jendela biasa untuk driver.
+
+**Berganti database SQLite ↔ Neon?**
+Cukup ganti `DATABASE_URL` di `.env` — `scripts/select-schema.mjs` memilih schema yang tepat otomatis saat `npm run dev` / `db:push`. Tidak ada kode yang perlu diubah.
 
 **Gagal build karena unduhan font (offline)?**
 Pastikan terhubung internet saat `npm run dev`/`build` pertama kali; Next.js akan meng-cache font setelahnya.

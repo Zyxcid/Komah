@@ -27,27 +27,27 @@ export function AdminHomeView() {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
       {/* Hero */}
-      <div className="rounded-3xl bg-gradient-to-br from-unp to-unp-deep p-6 text-white shadow-lg shadow-unp/25">
+      <div className="rounded-3xl bg-gradient-to-br from-gold to-gold-dark p-6 text-unp-deep shadow-lg shadow-gold/30">
         <div className="flex items-center gap-4">
-          <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+          <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-white/25 backdrop-blur">
             <ShieldCheck size={26} />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-green-100/90">{greet}, {me?.name}</p>
+            <p className="text-sm font-semibold text-unp-deep/70">{greet}, {me?.name}</p>
             <h1 className="text-xl font-extrabold leading-tight sm:text-2xl">Panel Admin KOMAH</h1>
           </div>
         </div>
         <div className="mt-5 grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-white/10 px-3.5 py-3 backdrop-blur">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-green-100/80">Menunggu</p>
-            <p className="mt-0.5 text-2xl font-extrabold text-gold">{pendingCount}</p>
+          <div className="rounded-2xl bg-white/25 px-3.5 py-3 backdrop-blur">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-unp-deep/60">Menunggu</p>
+            <p className="mt-0.5 text-2xl font-extrabold text-unp-deep">{pendingCount}</p>
           </div>
-          <div className="rounded-2xl bg-white/10 px-3.5 py-3 backdrop-blur">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-green-100/80">Driver aktif</p>
+          <div className="rounded-2xl bg-white/25 px-3.5 py-3 backdrop-blur">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-unp-deep/60">Driver aktif</p>
             <p className="mt-0.5 text-2xl font-extrabold">{verifiedCount}</p>
           </div>
-          <div className="rounded-2xl bg-white/10 px-3.5 py-3 backdrop-blur">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-green-100/80">Titik lokasi</p>
+          <div className="rounded-2xl bg-white/25 px-3.5 py-3 backdrop-blur">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-unp-deep/60">Titik lokasi</p>
             <p className="mt-0.5 text-2xl font-extrabold">{locationCount}</p>
           </div>
         </div>
@@ -80,7 +80,7 @@ export function AdminHomeView() {
           onClick={() => navigate("/kelola-lokasi")}
           className="group relative overflow-hidden rounded-3xl border-2 border-unp/30 bg-gradient-to-br from-unp-soft/60 to-card p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
         >
-          <span className="flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-unp to-unp-dark text-white shadow-md">
+          <span className="flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
             <MapPinned size={24} />
           </span>
           <p className="mt-3.5 text-base font-extrabold">Kelola Lokasi</p>

@@ -20,9 +20,9 @@ export function Welcome() {
 
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-unp to-unp-dark shadow-lg shadow-unp/30">
-            <Bike size={38} className="text-white" strokeWidth={2.2} />
-            <span className="relative -mt-14 ml-14 h-3 w-3 rounded-full bg-gold ring-4 ring-white" aria-hidden />
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-gold to-gold-dark shadow-lg shadow-gold/30">
+            <Bike size={38} className="text-unp-deep" strokeWidth={2.2} />
+            <span className="relative -mt-14 ml-14 h-3 w-3 rounded-full bg-unp ring-4 ring-white" aria-hidden />
           </div>
 
           <h1 className="mt-6 text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
@@ -32,7 +32,7 @@ export function Welcome() {
           <div className="mt-8 grid grid-cols-2 gap-3">
             <Button
               onClick={() => navigate("/masuk")}
-              className="h-12 bg-unp text-base font-extrabold hover:bg-unp-dark"
+              className="h-12 bg-gold text-base font-extrabold hover:bg-gold-dark"
             >
               <LogIn size={17} /> Masuk
             </Button>

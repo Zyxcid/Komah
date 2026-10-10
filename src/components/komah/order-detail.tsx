@@ -317,7 +317,7 @@ export function OrderDetailView({ code }: { code: string }) {
       {/* Aksi */}
       <div className="space-y-3">
         {canRate && (
-          <Button onClick={() => setRateOpen(true)} className="h-13 w-full gap-2 bg-gold text-base font-extrabold text-unp-deep hover:bg-gold-dark hover:text-white">
+          <Button onClick={() => setRateOpen(true)} className="h-13 w-full gap-2 bg-gold text-base font-extrabold text-unp-deep hover:bg-gold-dark">
             <Star size={18} className="fill-unp-deep" /> Beri Rating Driver
           </Button>
         )}
@@ -377,8 +377,8 @@ export function OrderDetailView({ code }: { code: string }) {
             className="mt-1"
           />
           <DialogFooter className="mt-2">
-            <Button onClick={submitRating} disabled={busy || stars < 1} className="w-full bg-unp font-extrabold hover:bg-unp-dark">
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Star size={15} className="fill-white" />}
+            <Button onClick={submitRating} disabled={busy || stars < 1} className="w-full bg-gold font-extrabold hover:bg-gold-dark">
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Star size={15} className="fill-unp-deep text-unp-deep" />}
               Kirim Rating
             </Button>
           </DialogFooter>

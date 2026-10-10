@@ -49,7 +49,7 @@ export function AdminView() {
   return (
     <div className="mx-auto w-full max-w-4xl px-4 pb-10 pt-6 sm:px-6">
       <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-unp to-unp-dark text-white shadow-md">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
           <ShieldCheck size={20} />
         </span>
         <div>
@@ -117,7 +117,7 @@ export function AdminView() {
                 onClick={() => decide(d.id, "approve")}
                 disabled={busyId === d.id + "approve"}
                 size="sm"
-                className="gap-1.5 bg-unp font-extrabold hover:bg-unp-dark"
+                className="gap-1.5 bg-gold font-extrabold hover:bg-gold-dark"
               >
                 {busyId === d.id + "approve" ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 Setujui

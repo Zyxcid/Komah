@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
-import { sendWA, waOrderAccepted, waOrderCancelled, waOrderCompleted, waOrderStarted } from "@/lib/wa";
+import { msgOrderAccepted, msgOrderCancelled, msgOrderCompleted, msgOrderStarted, sendPushToUser } from "@/lib/push";
 
 const orderInclude = {
   pickupLocation: true,
@@ -53,10 +53,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       data: { status: "DIBATALKAN", cancelledAt: new Date() },
       include: orderInclude,
     });
-    // Beri tahu driver yang sudah menerima (jika ada).
+    // Beri tahu driver yang sudah menerima (jika ada) via push.
     if (order.driverId) {
-      const drv = await db.user.findUnique({ where: { id: order.driverId }, select: { phone: true } });
-      if (drv) sendWA(drv.phone, waOrderCancelled({ code: order.code }));
+      await sendPushToUser(order.driverId, msgOrderCancelled({ code: order.code })).catch(() => {});
     }
     return NextResponse.json({ order: updated, message: "Pesanan dibatalkan." });
   }
@@ -127,18 +126,18 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       data: { driverId: user.id, status: "DIKONFIRMASI", acceptedAt: new Date() },
       include: orderInclude,
     });
-    // Kabari penumpang bahwa driver ditemukan.
-    if (order.user?.phone) {
-      sendWA(
-        order.user.phone,
-        waOrderAccepted({
+    // Kabari penumpang via push: driver ditemukan (sampai walau aplikasi ditutup).
+    if (order.user) {
+      await sendPushToUser(
+        order.user.id,
+        msgOrderAccepted({
           code: order.code,
           driverName: user.name,
           vehicle: user.vehicleType,
           pickupName: order.pickupLocation.name,
           fare: order.fare,
         })
-      );
+      ).catch(() => {});
     }
     return NextResponse.json({ order: updated, message: "Pesanan diterima. Menuju titik jemput!" });
   }
@@ -152,8 +151,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         data: { status: "BERJALAN", startedAt: new Date() },
         include: orderInclude,
       });
-      if (order.user?.phone) {
-        sendWA(order.user.phone, waOrderStarted({ code: order.code, destName: order.destLocation.name, fare: order.fare }));
+      if (order.user) {
+        await sendPushToUser(order.user.id, msgOrderStarted({ code: order.code, destName: order.destLocation.name, fare: order.fare })).catch(() => {});
       }
       return NextResponse.json({ order: updated, message: "Perjalanan dimulai." });
     }
@@ -167,8 +166,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       where: { id: user.id },
       data: { totalTrips: { increment: 1 }, totalEarnings: { increment: order.fare - 1000 } },
     });
-    if (order.user?.phone) {
-      sendWA(order.user.phone, waOrderCompleted({ code: order.code, fare: order.fare }));
+    if (order.user) {
+      await sendPushToUser(order.user.id, msgOrderCompleted({ code: order.code, fare: order.fare })).catch(() => {});
     }
     return NextResponse.json({ order: updated, message: "Pesanan selesai. Kerja bagus!" });
   }

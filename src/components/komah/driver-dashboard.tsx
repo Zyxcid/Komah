@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
+  Bell,
   Bike,
   Inbox,
   Loader2,
@@ -20,7 +21,11 @@ import { apiCall, navigate, rupiah, timeId, useApi, useAuth } from "./lib";
 import { TypeIcon, UserAvatar } from "./bits";
 import { DriverActiveOrder } from "./driver-active-order";
 import { DriverOrderPreview } from "./driver-order-preview";
+import { ensurePushSubscription, playNewOrderChime, removePushSubscription } from "./push";
 import type { DriverDashboardT, OrderT } from "@/lib/types";
+
+// Preferensi toggle notifikasi driver (tersimpan per perangkat).
+const NOTIF_KEY = "komah_notif_push";
 
 export function DriverDashboardView() {
   const { toast } = useToast();
@@ -29,6 +34,11 @@ export function DriverDashboardView() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [previewOrder, setPreviewOrder] = useState<OrderT | null>(null);
   const [acceptBusy, setAcceptBusy] = useState(false);
+
+  // ===== Notifikasi pesanan baru: bunyi in-app + Web Push =====
+  const [notifOn, setNotifOn] = useState(false);
+  const [notifBusy, setNotifBusy] = useState(false);
+  const [iosPwaHint, setIosPwaHint] = useState(false);
 
   const stats = data?.stats;
   const verified = stats?.verifyStatus === "VERIFIED";
@@ -113,6 +123,137 @@ export function DriverDashboardView() {
     };
   }, [posKey]);
 
+  // Sinkronkan toggle notifikasi dengan keadaan nyata browser (izin + langganan).
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      // iPhone hanya bisa push bila KOMAH dipasang ke layar utama (PWA).
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const standalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as Navigator & { standalone?: boolean }).standalone === true;
+      if (alive) setIosPwaHint(isIOS && !standalone);
+
+      if (localStorage.getItem(NOTIF_KEY) !== "1") return;
+      if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+      const cfg = await fetch("/api/push/config")
+        .then((r) => r.json())
+        .catch(() => ({ publicKey: null as string | null }));
+      if (!alive || !cfg?.publicKey) return;
+      const sub = await ensurePushSubscription(cfg.publicKey);
+      if (!alive || !sub) return;
+      setNotifOn(true);
+      // Langganan bisa hilang (mis. cache dibersihkan) — pastikan tercatat di server.
+      const j = sub.toJSON();
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: j.endpoint, p256dh: j.keys?.p256dh, auth: j.keys?.auth }),
+      }).catch(() => {});
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Pesanan BARU terdeteksi dari polling → bunyi + getar (+ notifikasi sistem
+  // bila tab disembunyikan dan belum ada langganan push yang menanganinya).
+  const prevIncomingRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const incoming = data?.incoming || [];
+    const ids = new Set(incoming.map((o) => o.id));
+    const prev = prevIncomingRef.current;
+    prevIncomingRef.current = ids;
+    if (prev === null || !notifOn || incoming.length === 0) return;
+    const fresh = incoming.filter((o) => !prev.has(o.id));
+    if (fresh.length === 0) return;
+
+    playNewOrderChime();
+    navigator.vibrate?.([200, 100, 200]);
+
+    if (
+      typeof Notification !== "undefined" &&
+      Notification.permission === "granted" &&
+      document.visibilityState !== "visible"
+    ) {
+      navigator.serviceWorker
+        ?.getRegistration()
+        .then(async (reg) => (reg ? await reg.pushManager.getSubscription().catch(() => null) : null))
+        .then((sub) => {
+          if (sub) return; // push dari server sudah menampilkan notifikasi
+          const o = fresh[0];
+          new Notification(`Pesanan baru ${o.code}`, {
+            body: `${o.pickupLocation.name} → ${o.destLocation.name} • ${rupiah(o.fare)}`,
+            icon: "/icons/icon-192.png",
+            tag: `komah-${o.code}`,
+          });
+        })
+        .catch(() => {});
+    }
+  }, [data, notifOn]);
+
+  async function toggleNotif(next: boolean) {
+    setNotifBusy(true);
+    try {
+      if (next) {
+        if (typeof Notification === "undefined") {
+          toast({ title: "Browser ini tidak mendukung notifikasi", variant: "destructive" });
+          return;
+        }
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") {
+          toast({
+            title: "Izin notifikasi belum diberikan",
+            description: "Klik ikon kunci di address bar → Izinkan notifikasi, lalu nyalakan lagi tombol ini.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const cfg = await fetch("/api/push/config")
+          .then((r) => r.json())
+          .catch(() => ({ publicKey: null as string | null }));
+        if (!cfg?.publicKey) {
+          toast({
+            title: "Notifikasi belum dikonfigurasi",
+            description: "Server membutuhkan VAPID_PUBLIC_KEY di .env (lihat DEPLOY.md).",
+            variant: "destructive",
+          });
+          return;
+        }
+        const sub = await ensurePushSubscription(cfg.publicKey);
+        if (!sub) {
+          toast({
+            title: "Perangkat ini belum bisa menerima push",
+            description: "Muat ulang halaman lalu coba lagi, atau pakai jendela biasa (bukan incognito).",
+            variant: "destructive",
+          });
+          return;
+        }
+        const j = sub.toJSON();
+        const { ok, data: res } = await apiCall("/api/push/subscribe", "POST", {
+          endpoint: j.endpoint,
+          p256dh: j.keys?.p256dh,
+          auth: j.keys?.auth,
+        });
+        if (!ok) {
+          toast({ title: "Gagal menyimpan langganan", description: res.error, variant: "destructive" });
+          return;
+        }
+        localStorage.setItem(NOTIF_KEY, "1");
+        setNotifOn(true);
+        toast({ title: "Notifikasi aktif" });
+      } else {
+        const endpoint = await removePushSubscription();
+        if (endpoint) await apiCall("/api/push/unsubscribe", "POST", { endpoint });
+        localStorage.setItem(NOTIF_KEY, "0");
+        setNotifOn(false);
+        toast({ title: "Notifikasi dimatikan" });
+      }
+    } finally {
+      setNotifBusy(false);
+    }
+  }
+
   async function toggleOnline(next: boolean) {
     const { ok, data: res } = await apiCall("/api/driver/status", "POST", { isOnline: next });
     if (!ok) {
@@ -182,8 +323,29 @@ export function DriverDashboardView() {
             </p>
             <p className="text-[11px] text-muted-foreground">{isOnline ? "Menerima pesanan" : "Tidak aktif"}</p>
           </div>
-          <Switch checked={isOnline} onCheckedChange={toggleOnline} disabled={!verified} className="data-[state=checked]:bg-unp" />
+          <Switch checked={isOnline} onCheckedChange={toggleOnline} disabled={!verified} className="data-[state=checked]:bg-gold" />
         </div>
+      </div>
+
+      {/* Notifikasi pesanan: langganan push */}
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <Bell size={18} className="mt-0.5 shrink-0 text-unp" />
+          <div>
+            <p className="text-sm font-extrabold">Notifikasi pesanan</p>
+            {iosPwaHint && (
+              <p className="mt-1 text-[11px] leading-relaxed text-gold-dark">
+                iPhone: pasang KOMAH ke layar utama (Bagikan → Tambah ke Layar Utama) agar notifikasi berfungsi.
+              </p>
+            )}
+          </div>
+        </div>
+        <Switch
+          checked={notifOn}
+          onCheckedChange={toggleNotif}
+          disabled={notifBusy || !verified}
+          className="data-[state=checked]:bg-gold"
+        />
       </div>
 
       {/* Peringatan verifikasi */}
@@ -287,7 +449,7 @@ export function DriverDashboardView() {
                   onClick={() => acceptOrder(o)}
                   disabled={acceptBusy}
                   size="sm"
-                  className="mt-3 w-full gap-1.5 bg-unp font-extrabold hover:bg-unp-dark"
+                  className="mt-3 w-full gap-1.5 bg-gold font-extrabold hover:bg-gold-dark"
                 >
                   {acceptBusy ? <Loader2 size={14} className="animate-spin" /> : <BadgeCheck size={14} />}
                   Terima (+{rupiah(o.fare - 1000)})

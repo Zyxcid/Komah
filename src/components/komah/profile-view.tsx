@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { PIN_DETAIL_RE, apiCall, navigate, uploadFile, useApi, useAuth } from "./lib";
 import { LocationPicker } from "./location-picker";
+import { PushToggleCard } from "./push-toggle";
 import { UserAvatar, VerifiedBadge } from "./bits";
 import type { LocationT } from "@/lib/types";
 
@@ -238,6 +239,9 @@ export function ProfileView() {
         </div>
       </div>
 
+      {/* Notifikasi push: kabar status pesanan walau aplikasi ditutup */}
+      <PushToggleCard />
+
       {/* Mode aplikasi — menentukan halaman pembuka (khusus akun driver) */}
       {isDriver && (
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
@@ -317,7 +321,7 @@ export function ProfileView() {
             <Label htmlFor="pf-email" className="font-semibold">Email (tidak dapat diubah)</Label>
             <Input id="pf-email" value={me?.email || ""} disabled className="mt-1.5 h-12 border-2 bg-muted" />
           </div>
-          <Button onClick={saveProfile} disabled={saving} className="h-12 w-full gap-2 bg-unp font-extrabold hover:bg-unp-dark">
+          <Button onClick={saveProfile} disabled={saving} className="h-12 w-full gap-2 bg-gold font-extrabold hover:bg-gold-dark">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Simpan Perubahan
           </Button>
         </div>
@@ -361,7 +365,7 @@ export function ProfileView() {
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Alamat Tersimpan</h2>
-          <Button onClick={() => setAddrOpen(true)} size="sm" className="gap-1.5 bg-unp font-bold hover:bg-unp-dark">
+          <Button onClick={() => setAddrOpen(true)} size="sm" className="gap-1.5 bg-gold font-bold hover:bg-gold-dark">
             <Plus size={15} /> Tambah
           </Button>
         </div>
@@ -461,7 +465,7 @@ export function ProfileView() {
             <Button
               onClick={addAddress}
               disabled={addrBusy || !addrLabel.trim() || !addrLoc}
-              className={cn("w-full gap-2 bg-unp font-extrabold hover:bg-unp-dark")}
+              className={cn("w-full gap-2 bg-gold font-extrabold hover:bg-gold-dark")}
             >
               {addrBusy ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Simpan Alamat
             </Button>
@@ -545,7 +549,7 @@ export function ProfileView() {
             <Button
               onClick={submitDriverRegister}
               disabled={drvBusy || drvUploading || !drvPlate.trim() || !drvVehicle.trim() || !drvKtm}
-              className="w-full gap-2 bg-gold font-extrabold text-unp-deep hover:bg-gold-dark hover:text-white"
+              className="w-full gap-2 bg-gold font-extrabold text-unp-deep hover:bg-gold-dark"
             >
               {drvBusy ? <Loader2 size={15} className="animate-spin" /> : <BadgeCheck size={15} />}
               Kirim Pendaftaran

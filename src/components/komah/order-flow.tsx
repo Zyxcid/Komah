@@ -130,7 +130,7 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
                 aria-current={pos === step ? "step" : undefined}
                 className={cn(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-extrabold transition-colors",
-                  pos < step ? "bg-unp text-white" : pos === step ? "bg-unp text-white ring-4 ring-unp/20" : "bg-muted text-muted-foreground"
+                  pos < step ? "bg-gold text-unp-deep" : pos === step ? "bg-gold text-unp-deep ring-4 ring-gold/30" : "bg-muted text-muted-foreground"
                 )}
               >
                 {pos < step ? <Check size={16} /> : <span className="tabular-nums">{pos + 1}</span>}
@@ -145,7 +145,7 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
               </span>
             </div>
             {pos < STAGE_LABEL.length - 1 && (
-              <div className={cn("mx-2.5 h-1 w-5 shrink-0 rounded-full sm:mx-4 sm:w-10", pos < step ? "bg-unp" : "bg-muted")} />
+              <div className={cn("mx-2.5 h-1 w-5 shrink-0 rounded-full sm:mx-4 sm:w-10", pos < step ? "bg-gold" : "bg-muted")} />
             )}
           </Fragment>
         ))}
@@ -292,7 +292,7 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
           )}
 
           {/* Tahap pertama — keluar dari alur cukup lewat tombol kembali di header. */}
-          <Button disabled={!ruteValid} onClick={() => setStep(1)} className="mt-6 h-13 w-full bg-unp text-base font-extrabold hover:bg-unp-dark">
+          <Button disabled={!ruteValid} onClick={() => setStep(1)} className="mt-6 h-13 w-full bg-gold text-base font-extrabold hover:bg-gold-dark">
             Lanjut konfirmasi <ArrowRight size={17} />
           </Button>
         </div>
@@ -377,7 +377,7 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
             <Button variant="outline" onClick={() => setStep(0)} className="h-13 flex-1 border-2 font-bold">
               Ubah
             </Button>
-            <Button onClick={submit} disabled={busy} className="h-13 flex-[2] bg-unp text-base font-extrabold hover:bg-unp-dark">
+            <Button onClick={submit} disabled={busy} className="h-13 flex-[2] bg-gold text-base font-extrabold hover:bg-gold-dark">
               {busy ? <Loader2 size={18} className="animate-spin" /> : <Bike size={18} />}
               Pesan Sekarang
             </Button>

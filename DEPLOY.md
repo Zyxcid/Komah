@@ -1,106 +1,126 @@
-# Panduan Deploy KOMAH — Vercel + Database Online Gratis
+# KOMAH — Panduan Menjalankan, Notifikasi, dan Deploy
 
-Aplikasi ini memakai **Prisma + PostgreSQL**. File database SQLite lama
-tidak bisa dipakai di Vercel (filesystem serverless bersifat sementara —
-data & file upload akan hilang), jadi kita pakai database hosting gratis.
+Aplikasi mendukung **dua mode database** yang dipilih otomatis dari isi
+`DATABASE_URL` di `.env` (lihat `scripts/select-schema.mjs`):
 
-Rekomendasi: **Neon** (neon.tech) — PostgreSQL gratis, serverless, dan
-integrasi resmi dengan Vercel. Alternatif yang sama langkahnya:
-**Supabase** (supabase.com).
+| Mode | `DATABASE_URL` | Kapan dipakai |
+|---|---|---|
+| SQLite offline (default) | `file:../db/custom.db` | Development & coba-coba fitur, tanpa internet |
+| PostgreSQL (Neon/Supabase) | `postgresql://...` | Deploy online di Vercel |
 
----
+## Menjalankan lokal (3 langkah, offline)
 
-## Langkah 1 — Buat database gratis di Neon
+```bash
+cd komah
+npm install
+npm run dev
+```
 
-1. Buka https://neon.tech → **Sign Up** (bisa pakai akun GitHub).
-2. Buat project baru, misal bernama `komah` (pilih region terdekat,
-   mis. Singapore `ap-southeast-1`).
-3. Setelah project dibuat, buka **Dashboard → Connection String**.
-4. Salin **Pooled connection string** — bentuknya seperti:
+Buka http://localhost:3000. Database SQLite (`db/custom.db`) sudah termasuk
+beserta data demo, dan `.env` (kunci database + VAPID notifikasi) juga sudah
+disertakan sehingga semuanya langsung jalan tanpa setup apa pun.
 
+Akun demo (sandi `komah123`): `penumpang@komah.id`, `driver@komah.id`,
+`admin@komah.id`.
+
+Perintah database (ikut mode yang aktif di `.env`):
+
+```bash
+npm run db:push    # buat/perbarui tabel sesuai schema
+npm run db:seed    # isi ulang data demo
+npm run db:reset   # hapus semua data lalu seed ulang
+```
+
+## Menguji notifikasi driver
+
+Notifikasi pesanan baru punya dua lapis:
+
+1. **Bunyi + getar** saat dashboard driver terbuka (deteksi lewat polling 4 detik).
+2. **Web Push** (notifikasi sistem/layar) yang tetap masuk walau tab KOMAH ditutup.
+
+Langkah uji di satu komputer:
+
+1. Buka http://localhost:3000 di Chrome biasa, masuk sebagai `driver@komah.id`, buka mode driver.
+2. Nyalakan toggle **Notifikasi pesanan** → klik **Izinkan** saat browser meminta izin.
+3. Buka jendela **incognito** (atau browser lain), masuk sebagai `penumpang@komah.id`, lalu buat pesanan.
+4. Di jendela driver: terdengar bunyi "ding-dong" dan pesanan langsung muncul.
+5. **Uji tab tertutup:** tutup tab KOMAH di jendela driver (browser tetap berjalan), lalu buat pesanan lagi dari incognito. Notifikasi sistem akan muncul; klik notifikasi akan membuka dashboard driver.
+6. Skrip uji cepat tanpa membuat pesanan: `node scripts/push-test.mjs`
+
+Catatan platform:
+
+- **Android Chrome:** notifikasi masuk seperti aplikasi biasa, bahkan setelah browser ditutup penuh.
+- **iPhone (iOS 16.4+):** notifikasi hanya berfungsi setelah KOMAH dipasang ke layar utama (Bagikan → Tambah ke Layar Utama), lalu dibuka dari ikon tersebut.
+- **Mode incognito** biasanya tidak bisa menerima push; pakai jendela biasa untuk peran driver.
+
+## Kunci VAPID
+
+Web Push membutuhkan sepasang kunci VAPID yang sudah diisi di `.env`:
+
+```
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:admin@komah.id
+```
+
+Ingin memakai kunci sendiri? Generate pasangan baru lalu salin ke `.env`:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Ganti kunci akan membuat langganan lama tidak valid; cukup matikan lalu
+nyalakan lagi toggle notifikasi di dashboard driver.
+
+## Berpindah ke database Neon (saat mau deploy online)
+
+1. Buat project gratis di https://neon.tech (bisa login pakai akun GitHub),
+   pilih region terdekat (mis. Singapore `ap-southeast-1`).
+2. Salin **Pooled connection string** dari Dashboard → Connection String:
    ```
    postgresql://user:password@ep-xxxxxx-pooler.ap-southeast-1.aws.neon.tech/komah?sslmode=require
    ```
+3. Tempel ke `.env` sebagai `DATABASE_URL` (menggantikan baris `file:...`).
+4. Buat semua tabel + isi data demo:
+   ```bash
+   npm run db:push
+   npm run db:seed
+   ```
+   Perintah ini otomatis tahu sedang menunjuk Neon (bukan SQLite).
 
-   > Yang berakhiran **`-pooler`** (WebSockets/pooler) lebih cocok untuk
-   > serverless Vercel — koneksi dipool, tidak boros koneksi paralel.
+## Deploy ke Vercel
 
-## Langkah 2 — Set environment variable di Vercel
-
-1. Buka https://vercel.com → project **Komah** → **Settings →
-   Environment Variables**.
-2. Tambahkan:
+1. Push kode ke GitHub, lalu impor / redeploy project di Vercel.
+2. Tambahkan environment variable di Settings → Environment Variables:
 
    | Name | Value |
    |---|---|
-   | `DATABASE_URL` | connection string Neon dari Langkah 1 |
-   | `AUTH_SECRET` | string acak panjang (lihat catatan di bawah) |
+   | `DATABASE_URL` | connection string Neon (pooled) |
+   | `VAPID_PUBLIC_KEY` | kunci publik VAPID (sama seperti di `.env` lokal) |
+   | `VAPID_PRIVATE_KEY` | kunci privat VAPID |
+   | `VAPID_SUBJECT` | `mailto:admin@komah.id` |
+   | `AUTH_SECRET` | string acak panjang (lihat bawah) |
 
-3. Generate `AUTH_SECRET` di terminal:
+   (Tidak ada lagi `FONNTE_TOKEN` — notifikasi kini memakai Web Push gratis via VAPID.)
 
+3. Generate `AUTH_SECRET`:
    ```bash
    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
    ```
+4. Deploy ulang. Selesai — buka domain Vercel dan login dengan akun demo.
 
-   > Tanpa `AUTH_SECRET`, aplikasi memakai default dev — sesi login bisa
-   > dipalsukan siapa saja yang tahu secret-nya. Wajib diganti di produksi.
+Verifikasi cepat setelah deploy:
 
-## Langkah 3 — Buat tabel & isi data awal (seed)
-
-Dijalankan **sekali saja**, dari komputer lokal (repo sudah ter-clone):
-
-```bash
-# 1. Pastikan .env lokal berisi DATABASE_URL Neon (salin dari .env.example)
-#    DATABASE_URL="postgresql://...neon.tech/komah?sslmode=require"
-
-npm install
-
-# 2. Buat semua tabel di database Neon
-npx prisma db push
-
-# 3. Isi data demo (akun, lokasi UNP, pesanan contoh)
-npm run db:seed
-```
-
-Akun demo setelah seed:
-
-| Peran | Email | Password |
-|---|---|---|
-| Penumpang | penumpang@komah.id | komah123 |
-| Driver | driver@komah.id | komah123 |
-| Admin | admin@komah.id | komah123 |
-
-## Langkah 4 — Deploy ulang
-
-```bash
-git add -A
-git commit -m "switch ke PostgreSQL + env deploy"
-git push
-```
-
-Push ke GitHub memicu deploy otomatis di Vercel. Selesai — buka
-https://komah.vercel.app dan login dengan akun demo di atas.
-
----
-
-## Verifikasi cepat
-
-- Login sebagai admin → data verifikasi driver tampil = koneksi DB hidup.
-- Buat pesanan → refresh halaman → pesanan masih ada = data tersimpan
-  permanen (bukan lagi di file sementara).
+- Login sebagai admin → data verifikasi driver tampil = koneksi Neon hidup.
+- Buat pesanan dari HP kedua → notifikasi muncul di perangkat driver = Web Push produksi jalan.
 
 ## Catatan penting
 
-1. **Jangan commit `.env`** ke GitHub — sudah di `.gitignore`. Simpan
-   connection string hanya di Vercel Environment Variables dan `.env`
-   lokal.
-2. **Upload file (foto KTM, avatar) belum persisten di Vercel.**
-   Route `/api/upload` menyimpan file ke filesystem server — di Vercel
-   file ini hilang saat function di-restart. Solusi gratis: **Vercel Blob**
-   (250 MB gratis) — migrasi bisa dikerjakan sebagai task berikutnya.
-3. **Tidak perlu mengubah kode lain** — seluruh query sudah lewat Prisma;
-   perpindahan SQLite → PostgreSQL hanya mengubah `provider` di
-   `prisma/schema.prisma` (sudah diterapkan di repo ini) dan
-   `DATABASE_URL`.
-4. Jika lupa password akun demo atau ingin reset data: jalankan ulang
-   `npm run db:seed` (menghapus semua data lama lalu menanam ulang).
+1. **Jangan commit `.env`** ke GitHub — sudah di `.gitignore`. Simpan connection
+   string dan kunci VAPID hanya di Vercel Environment Variables dan `.env` lokal.
+2. **Upload file (foto KTM, avatar) belum persisten di Vercel** — route
+   `/api/upload` menyimpan ke filesystem server yang bersifat sementara.
+   Solusi gratis berikutnya: Vercel Blob (250 MB).
+3. **Reset data demo** kapan pun: `npm run db:reset` (mode aktif mana pun).
+4. Semua kode berjalan sama di SQLite dan PostgreSQL — perpindahan hanya
+   mengganti `DATABASE_URL`, tidak perlu mengubah kode.

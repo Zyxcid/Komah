@@ -31,7 +31,7 @@ export interface PinMapProps {
 
 // ---------- Ikon marker (divIcon HTML — tanpa aset gambar) ----------
 
-const UNP = "#0E7A3E";
+const UNP = "#B45309";
 const GOLD = "#F5B301";
 
 function dotIcon(bg: string, size = 26) {

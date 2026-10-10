@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
-import { sendWA, waDriverRegistered } from "@/lib/wa";
+import { msgDriverRegistered, sendPushToUser } from "@/lib/push";
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,11 +48,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Kabari semua admin via WA: ada driver baru yang menunggu verifikasi.
+    // Kabari semua admin via push: ada driver baru yang menunggu verifikasi.
     if (isDriver) {
-      const admins = await db.user.findMany({ where: { role: "ADMIN" }, select: { phone: true } });
-      const msg = waDriverRegistered({ name: user.name, vehicle: user.vehicleType });
-      for (const a of admins) sendWA(a.phone, msg);
+      const admins = await db.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
+      const msg = msgDriverRegistered({ name: user.name, vehicle: user.vehicleType });
+      await Promise.all(admins.map((a) => sendPushToUser(a.id, msg).catch(() => {})));
     }
 
     return NextResponse.json({

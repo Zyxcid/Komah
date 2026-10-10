@@ -178,7 +178,7 @@ export function AdminLocationsView() {
         <p className="max-w-md text-sm text-muted-foreground">
           Titik yang bisa dipilih penumpang. Atur nama, zona, dan tarifnya.
         </p>
-        <Button onClick={openAdd} className="gap-2 bg-unp font-extrabold hover:bg-unp-dark">
+        <Button onClick={openAdd} className="gap-2 bg-gold font-extrabold hover:bg-gold-dark">
           <Plus size={16} /> Tambah Lokasi
         </Button>
       </div>
@@ -186,7 +186,7 @@ export function AdminLocationsView() {
       {/* Tarif dasar dalam kampus */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border-2 border-unp/25 bg-unp-soft/40 p-5">
         <div className="flex items-center gap-3.5">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-unp to-unp-dark text-white shadow-md">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
             <Wallet size={22} />
           </span>
           <div>
@@ -210,7 +210,7 @@ export function AdminLocationsView() {
               className="h-11 w-32 border-2 text-right text-base font-bold"
               autoFocus
             />
-            <Button onClick={saveBaseFare} disabled={fareBusy} className="h-11 gap-1.5 bg-unp font-extrabold hover:bg-unp-dark">
+            <Button onClick={saveBaseFare} disabled={fareBusy} className="h-11 gap-1.5 bg-gold font-extrabold hover:bg-gold-dark">
               {fareBusy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Simpan
             </Button>
             <Button variant="outline" onClick={() => setBaseFareDraft(null)} className="h-11 border-2 font-bold">
@@ -229,7 +229,7 @@ export function AdminLocationsView() {
           title="Belum ada lokasi"
           desc="Tambahkan titik kampus, kos, dan tempat publik agar penumpang bisa memesan."
           action={
-            <Button onClick={openAdd} className="gap-2 bg-unp font-bold hover:bg-unp-dark">
+            <Button onClick={openAdd} className="gap-2 bg-gold font-bold hover:bg-gold-dark">
               <Plus size={15} /> Tambah Lokasi
             </Button>
           }
@@ -418,7 +418,7 @@ export function AdminLocationsView() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={submitForm} disabled={formBusy} className="w-full gap-2 bg-unp font-extrabold hover:bg-unp-dark">
+            <Button onClick={submitForm} disabled={formBusy} className="w-full gap-2 bg-gold font-extrabold hover:bg-gold-dark">
               {formBusy ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
               {editing ? "Simpan Perubahan" : "Tambah Lokasi"}
             </Button>

@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { AddressT, LocationT, MeT, OrderStatus, OrderType } from "@/lib/types";
+import { removePushSubscription } from "./push";
 
 // ===================== Router hash sederhana =====================
 export type Route =
@@ -147,6 +148,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [uid, refresh]);
 
   const logout = useCallback(async () => {
+    // Berhenti berlangganan notifikasi push di perangkat ini (bila ada),
+    // agar tidak menerima notifikasi pesanan setelah keluar akun.
+    try {
+      const endpoint = await removePushSubscription();
+      if (endpoint) {
+        await fetch("/api/push/unsubscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint }),
+        }).catch(() => {});
+      }
+    } catch {
+      // Biarkan proses keluar tetap berjalan apa pun yang terjadi.
+    }
     await fetch("/api/auth/logout", { method: "POST" });
     setMe(null);
     setAddresses([]);

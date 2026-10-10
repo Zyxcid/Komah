@@ -357,7 +357,7 @@ export function LocationPicker({
                   className="h-11 border-2"
                   onKeyDown={(e) => e.key === "Enter" && saveAddress()}
                 />
-                <Button onClick={saveAddress} disabled={saveBusy || !saveLabel.trim()} className="h-11 shrink-0 gap-1.5 bg-unp font-extrabold hover:bg-unp-dark">
+                <Button onClick={saveAddress} disabled={saveBusy || !saveLabel.trim()} className="h-11 shrink-0 gap-1.5 bg-gold font-extrabold hover:bg-gold-dark">
                   {saveBusy ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
                   Simpan
                 </Button>
@@ -367,7 +367,7 @@ export function LocationPicker({
                 <Button
                   onClick={() => confirm(pending, pin)}
                   disabled={!pending}
-                  className="h-11 w-full gap-2 bg-unp font-extrabold hover:bg-unp-dark"
+                  className="h-11 w-full gap-2 bg-gold font-extrabold hover:bg-gold-dark"
                 >
                   <Check size={16} />
                   {pending ? `Gunakan: ${pending.name}` : "Pilih lokasi dulu"}

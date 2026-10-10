@@ -21,7 +21,7 @@ import { useOsmrRoute } from "./use-route";
 import type { LatLng } from "./map-core";
 import type { OrderT } from "@/lib/types";
 
-const UNP = "#0E7A3E";
+const UNP = "#B45309";
 const GOLD = "#F5B301";
 
 export function DriverOrderPreview({
@@ -138,7 +138,7 @@ export function DriverOrderPreview({
           <Button
             onClick={() => onAccept(order)}
             disabled={busy}
-            className="h-12 w-full gap-2 bg-unp font-extrabold hover:bg-unp-dark"
+            className="h-12 w-full gap-2 bg-gold font-extrabold hover:bg-gold-dark"
           >
             {busy ? <Loader2 size={16} className="animate-spin" /> : <BadgeCheck size={16} />}
             Terima Pesanan (+{rupiah(order.fare - 1000)})

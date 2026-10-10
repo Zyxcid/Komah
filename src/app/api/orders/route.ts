@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { calcFare } from "@/lib/fare";
 import { getBaseFare } from "@/lib/settings";
-import { sendWA, waNewOrderForDriver } from "@/lib/wa";
+import { pushNewOrderToDrivers } from "@/lib/push";
 import crypto from "crypto";
 
 const ACTIVE = ["MENCARI", "DIKONFIRMASI", "BERJALAN"] as const;
@@ -146,19 +146,15 @@ export async function POST(req: NextRequest) {
       include: orderInclude,
     });
 
-    // Notifikasi WA ke semua driver online terverifikasi (fire-and-forget).
-    const onlineDrivers = await db.user.findMany({
-      where: { role: "DRIVER", verifyStatus: "VERIFIED", isOnline: true },
-      select: { phone: true },
-    });
-    const msg = waNewOrderForDriver({
+    // Web Push ke semua driver online terverifikasi — notifikasi sampai walau
+    // aplikasi/tab KOMAH ditutup. Gagal kirim tidak boleh mengganggu pesanan.
+    await pushNewOrderToDrivers({
       code: order.code,
       type: order.type,
       pickupName: pickup.name,
       destName: dest.name,
       fare: order.fare,
-    });
-    for (const d of onlineDrivers) sendWA(d.phone, msg);
+    }).catch(() => {});
 
     return NextResponse.json({ order });
   } catch (e) {

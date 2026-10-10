@@ -29,3 +29,37 @@ self.addEventListener("fetch", (e) => {
       .catch(() => caches.match(e.request).then((hit) => hit || caches.match("/")))
   );
 });
+
+// ===== Web Push: pesanan baru untuk driver (walau tab KOMAH ditutup) =====
+self.addEventListener("push", (e) => {
+  let data = {};
+  try {
+    data = e.data ? e.data.json() : {};
+  } catch {
+    data = { title: "Pesanan baru KOMAH", body: "Ada pesanan menunggumu. Buka KOMAH untuk menerimanya." };
+  }
+  e.waitUntil(
+    self.registration.showNotification(data.title || "Pesanan baru KOMAH", {
+      body: data.body || "Ada pesanan menunggumu. Buka KOMAH untuk menerimanya.",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: data.tag || "komah-order",
+      renotify: true,
+      data: { url: data.url || "/#/mode-driver" },
+      vibrate: [200, 100, 200],
+    })
+  );
+});
+
+// Klik notifikasi: fokuskan jendela KOMAH yang terbuka, atau buka baru.
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ("focus" in c) return c.focus();
+      }
+      return self.clients.openWindow((e.notification.data && e.notification.data.url) || "/#/mode-driver");
+    })
+  );
+});
