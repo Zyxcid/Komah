@@ -31,8 +31,8 @@ export interface PinMapProps {
 
 // ---------- Ikon marker (divIcon HTML — tanpa aset gambar) ----------
 
-const UNP = "#B45309";
-const GOLD = "#F5B301";
+const UNP = "#C2410C";
+const GOLD = "#F7A200";
 
 function dotIcon(bg: string, size = 26) {
   const inner = Math.max(6, Math.round(size * 0.3));
@@ -116,7 +116,7 @@ export function RouteMapCore({ pickup, dest, driver, route }: RouteMapProps) {
       zoom={15}
       scrollWheelZoom={false}
       className="h-full w-full"
-      style={{ background: "#e7efe9" }}
+      style={{ background: "#EFE9DC" }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -143,7 +143,7 @@ export function RouteMapCore({ pickup, dest, driver, route }: RouteMapProps) {
 
 export function PinMapCore({ center, value, onChange }: PinMapProps) {
   return (
-    <MapContainer center={[center.lat, center.lng]} zoom={16} scrollWheelZoom={false} className="h-full w-full" style={{ background: "#e7efe9" }}>
+    <MapContainer center={[center.lat, center.lng]} zoom={16} scrollWheelZoom={false} className="h-full w-full" style={{ background: "#EFE9DC" }}>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"

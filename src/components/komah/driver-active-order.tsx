@@ -20,8 +20,8 @@ import { useOsmrRoute } from "./use-route";
 import type { LatLng } from "./map-core";
 import type { OrderT } from "@/lib/types";
 
-const UNP = "#B45309";
-const GOLD = "#F5B301";
+const UNP = "#C2410C";
+const GOLD = "#F7A200";
 
 export function DriverActiveOrder({
   order,

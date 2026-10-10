@@ -97,14 +97,7 @@ export function HomeView() {
               onClick={() => navigate(`/pesan?type=${s.type}`)}
               className="rounded-3xl border border-border bg-card p-4 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-unp/40 hover:shadow-md"
             >
-              <span
-                className={
-                  "mx-auto flex h-12 w-12 items-center justify-center rounded-2xl shadow-md " +
-                  (s.type === "MAKANAN"
-                    ? "bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-gold/25"
-                    : "bg-gradient-to-br from-unp to-unp-dark text-white shadow-unp/25")
-                }
-              >
+              <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md shadow-gold/25">
                 <s.icon size={22} />
               </span>
               <p className="mt-2.5 text-sm font-extrabold leading-tight">{s.label}</p>

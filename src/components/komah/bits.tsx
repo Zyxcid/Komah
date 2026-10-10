@@ -19,7 +19,7 @@ export function LogoKOMAH({ dark = false, size = "md" }: { dark?: boolean; size?
         <div className={cn("font-extrabold tracking-tight", text, dark ? "text-white" : "text-unp-deep")}>
           KOMAH
         </div>
-        <div className={cn("mt-1 text-[10px] font-semibold uppercase tracking-widest", dark ? "text-amber-100/80" : "text-unp/70")}>
+        <div className={cn("mt-1 text-[10px] font-semibold uppercase tracking-widest", dark ? "text-gold-soft/80" : "text-unp/70")}>
           Ojek &middot; Antar &middot; UNP
         </div>
       </div>
@@ -38,7 +38,7 @@ export function UserAvatar({
   className?: string;
   size?: number;
 }) {
-  const palette = ["#B45309", "#C98F00", "#92400E", "#D97706", "#A16207", "#8A5A00"];
+  const palette = ["#C2410C", "#D97706", "#9A3412", "#EAB308", "#7C2D12", "#F7A200"];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % 997;
   const color = palette[hash % palette.length];
@@ -76,10 +76,10 @@ export function RatingStars({ value, count, size = 14, className }: { value: num
 export function StatusBadge({ status }: { status: OrderStatus }) {
   const meta = STATUS_META[status];
   const map: Record<OrderStatus, string> = {
-    MENCARI: "bg-amber-50 text-amber-700 border-amber-200",
+    MENCARI: "bg-orange-50 text-orange-700 border-orange-200",
     DIKONFIRMASI: "bg-blue-50 text-blue-700 border-blue-200",
-    BERJALAN: "bg-unp-soft text-unp-dark border-amber-200",
-    SELESAI: "bg-gold-soft text-unp border-amber-200",
+    BERJALAN: "bg-unp-soft text-unp-dark border-orange-200",
+    SELESAI: "bg-gold-soft text-unp border-orange-200",
     DIBATALKAN: "bg-red-50 text-red-600 border-red-200",
   };
   const icon =
