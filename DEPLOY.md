@@ -114,13 +114,47 @@ Verifikasi cepat setelah deploy:
 - Login sebagai admin → data verifikasi driver tampil = koneksi Neon hidup.
 - Buat pesanan dari HP kedua → notifikasi muncul di perangkat driver = Web Push produksi jalan.
 
+### PENTING: database Neon sudah lama + ada fitur baru? Jalankan `db:push` lagi
+
+Tabel hanya dibuat saat kamu menjalankan `npm run db:push`. Kalau kamu menambah
+fitur baru (contoh: notifikasi Web Push menambah tabel `PushSubscription`),
+database Neon lama **belum punya tabelnya** — akibatnya toggle notifikasi gagal
+dengan error 500 `Terjadi kesalahan server.` di `/api/push/subscribe`.
+
+Perbaikannya (aman, data lama tidak tersentuh — Prisma hanya menambah tabel
+yang kurang):
+
+```bash
+# di folder proyek, TANPA mengubah .env (env var menimpa sementara):
+# Linux / macOS:
+DATABASE_URL="postgresql://...neon.../komah?sslmode=require" npm run db:push
+
+# Windows PowerShell:
+$env:DATABASE_URL="postgresql://...neon.../komah?sslmode=require"; npm run db:push
+```
+
+Atau: ganti `DATABASE_URL` di `.env` ke connection string Neon → `npm run db:push`
+→ kembalikan ke `file:../db/custom.db`. Setelah itu toggle notifikasi di
+komah.vercel.app langsung berfungsi tanpa deploy ulang.
+
+## Troubleshooting deploy
+
+| Gejala | Penyebab | Solusi |
+|---|---|---|
+| Toggle notifikasi → 500 `Terjadi kesalahan server.` | Tabel `PushSubscription` belum ada di Neon | `DATABASE_URL=...neon... npm run db:push` (lihat di atas) |
+| `npm warn install-scripts ...` di build log Vercel | Fitur keamanan baru npm yang memberi tahu paket mana yang punya install script — **hanya peringatan, bukan error**; build tetap sukses | Tidak perlu apa-apa |
+| `Security Error: Content at ... may not load or link to file:///.` di console Firefox | Halaman/b extension browser menautkan berkas lokal — **bukan dari kode KOMAH** (sudah diverifikasi) | Coba mode Private Window / matikan extension; abaikan jika aplikasi tetap jalan |
+| Upload KTM/avatar gagal di Vercel | Filesystem Vercel read-only | Sudah otomatis: foto ≤ 1 MB disematkan sebagai data URL di database; lebih dari itu kecilkan dulu fotonya |
+
+
 ## Catatan penting
 
 1. **Jangan commit `.env`** ke GitHub — sudah di `.gitignore`. Simpan connection
    string dan kunci VAPID hanya di Vercel Environment Variables dan `.env` lokal.
-2. **Upload file (foto KTM, avatar) belum persisten di Vercel** — route
-   `/api/upload` menyimpan ke filesystem server yang bersifat sementara.
-   Solusi gratis berikutnya: Vercel Blob (250 MB).
+2. **Upload file (foto KTM, avatar) di Vercel**: filesystem serverless read-only,
+   jadi foto otomatis disematkan sebagai data URL di database (maks 1 MB per foto
+   saat online; di dev lokal tetap disimpan sebagai berkas di `public/uploads`,
+   maks 5 MB). Solusi lebih rapi untuk nanti: Vercel Blob (250 MB gratis).
 3. **Reset data demo** kapan pun: `npm run db:reset` (mode aktif mana pun).
 4. Semua kode berjalan sama di SQLite dan PostgreSQL — perpindahan hanya
    mengganti `DATABASE_URL`, tidak perlu mengubah kode.

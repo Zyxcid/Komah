@@ -6,7 +6,11 @@ import path from "path";
 
 // Unggah berkas (foto KTM, avatar) — multipart/form-data, field "file".
 // Whitelist JPG/PNG/WebP, maks 5 MB, nama unik, disimpan di public/uploads.
+// Di serverless (Vercel) filesystem read-only → berkas disematkan sebagai
+// data URL di database (avatarUrl/ktmUrl) agar unggah tetap berfungsi.
 const MAX_SIZE = 5 * 1024 * 1024;
+// Batas ukuran data URL agar baris database tidak membengkak.
+const MAX_EMBED = 1024 * 1024;
 const ALLOWED: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -31,12 +35,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Ukuran maksimal 5 MB." }, { status: 400 });
     }
 
-    const dir = path.join(process.cwd(), "public", "uploads");
-    await fs.mkdir(dir, { recursive: true });
-    const name = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
-    await fs.writeFile(path.join(dir, name), Buffer.from(await file.arrayBuffer()));
+    const buf = Buffer.from(await file.arrayBuffer());
 
-    return NextResponse.json({ url: `/uploads/${name}` });
+    // Jalur normal: simpan ke public/uploads (dev lokal / server biasa).
+    try {
+      const dir = path.join(process.cwd(), "public", "uploads");
+      await fs.mkdir(dir, { recursive: true });
+      const name = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
+      await fs.writeFile(path.join(dir, name), buf);
+      return NextResponse.json({ url: `/uploads/${name}` });
+    } catch {
+      // Filesystem read-only (mis. Vercel) → sematkan sebagai data URL.
+      if (buf.length > MAX_EMBED) {
+        return NextResponse.json(
+          { error: "Server online hanya menerima foto sampai 1 MB — kecilkan dulu foto-mu, lalu unggah ulang." },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json({ url: `data:${file.type};base64,${buf.toString("base64")}` });
+    }
   } catch (e) {
     console.error("upload error", e);
     return NextResponse.json({ error: "Gagal mengunggah berkas." }, { status: 500 });

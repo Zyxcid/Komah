@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
       await db.pushSubscription.delete({ where: { endpoint } }).catch(() => {});
     }
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (e) {
+    console.error("push unsubscribe error", e);
     return NextResponse.json({ error: "Terjadi kesalahan server." }, { status: 500 });
   }
 }

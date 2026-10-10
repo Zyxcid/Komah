@@ -21,7 +21,10 @@ export async function POST(req: NextRequest) {
       create: { endpoint, p256dh, auth, userId: user.id },
     });
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (e) {
+    // P2021 = tabel PushSubscription belum ada di DB produksi → jalankan
+    // `npm run db:push` dengan DATABASE_URL Neon (lihat DEPLOY.md).
+    console.error("push subscribe error", e);
     return NextResponse.json({ error: "Terjadi kesalahan server." }, { status: 500 });
   }
 }
