@@ -9,6 +9,7 @@ export type Route =
   | { name: "landing" }
   | { name: "login" }
   | { name: "register" }
+  | { name: "demo-accounts" }
   | { name: "home" }
   | { name: "order"; type?: OrderType }
   | { name: "order-detail"; code: string }
@@ -33,6 +34,8 @@ export function parseHash(): { route: Route; query: URLSearchParams } {
       return { route: { name: "login" }, query };
     case "daftar":
       return { route: { name: "register" }, query };
+    case "akun-demo":
+      return { route: { name: "demo-accounts" }, query };
     case "beranda":
       return { route: { name: "home" }, query };
     case "pesan": {

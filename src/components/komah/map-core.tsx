@@ -103,6 +103,11 @@ function ClickToPick({ onPick }: { onPick: (p: LatLng) => void }) {
 }
 
 // ---------- Peta rute (detail pesanan & pratinjau konfirmasi) ----------
+// Catatan z-index: pane Leaflet memakai z-index 200-800. Tanpa konteks
+// tumpukan sendiri, pane itu "bocor" ke konteks root dan menutupi elemen
+// aplikasi (header sticky z-40, dropdown avatar z-50). Kelas z-0 pada
+// kontainer membuat stacking context tersendiri sehingga peta selalu
+// berada DI BAWAH elemen UI aplikasi.
 
 export function RouteMapCore({ pickup, dest, driver, route }: RouteMapProps) {
   const hasRoute = !!route && route.length > 1;
@@ -115,7 +120,7 @@ export function RouteMapCore({ pickup, dest, driver, route }: RouteMapProps) {
       center={[(pickup.lat + dest.lat) / 2, (pickup.lng + dest.lng) / 2]}
       zoom={15}
       scrollWheelZoom={false}
-      className="h-full w-full"
+      className="relative z-0 h-full w-full"
       style={{ background: "#EFE9DC" }}
     >
       <TileLayer
@@ -143,7 +148,7 @@ export function RouteMapCore({ pickup, dest, driver, route }: RouteMapProps) {
 
 export function PinMapCore({ center, value, onChange }: PinMapProps) {
   return (
-    <MapContainer center={[center.lat, center.lng]} zoom={16} scrollWheelZoom={false} className="h-full w-full" style={{ background: "#EFE9DC" }}>
+    <MapContainer center={[center.lat, center.lng]} zoom={16} scrollWheelZoom={false} className="relative z-0 h-full w-full" style={{ background: "#EFE9DC" }}>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bike, LogIn, UserPlus } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { navigate, useAuth } from "./lib";
 import { LogoKOMAH } from "./bits";
@@ -20,12 +20,7 @@ export function Welcome() {
 
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-gold to-gold-dark shadow-lg shadow-gold/30">
-            <Bike size={38} className="text-unp-deep" strokeWidth={2.2} />
-            <span className="relative -mt-14 ml-14 h-3 w-3 rounded-full bg-unp ring-4 ring-white" aria-hidden />
-          </div>
-
-          <h1 className="mt-6 text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
             Ojek &amp; titip antar khusus civitas UNP
           </h1>
 

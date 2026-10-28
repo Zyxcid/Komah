@@ -272,7 +272,6 @@ export function ProfileView() {
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-extrabold">Penumpang</span>
-                <span className="block text-[11px] leading-tight text-muted-foreground">Buka di Beranda pesanan</span>
               </span>
               {me?.appMode === "PENUMPANG" && <Check size={17} className="ml-auto shrink-0 text-unp" />}
             </button>
@@ -297,7 +296,6 @@ export function ProfileView() {
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-extrabold">Driver</span>
-                <span className="block text-[11px] leading-tight text-muted-foreground">Buka di Dashboard pesanan masuk</span>
               </span>
               {me?.appMode === "DRIVER" && <Check size={17} className="ml-auto shrink-0 text-unp" />}
             </button>

@@ -21,6 +21,7 @@ import { TYPE_META } from "./lib";
 import { LogoKOMAH, UserAvatar } from "./bits";
 import { Welcome } from "./welcome";
 import { LoginView, RegisterView } from "./auth-view";
+import { DemoAccountsView } from "./demo-accounts";
 import { HomeView } from "./home-view";
 import { OrderFlowView } from "./order-flow";
 import { OrderDetailView } from "./order-detail";
@@ -63,15 +64,24 @@ function routeTitle(route: Route): string {
       return "Kelola Lokasi";
     case "profile":
       return "Profil Saya";
+    case "demo-accounts":
+      return "Akun Demo";
     default:
       return "KOMAH";
   }
 }
 
-function ViewFor(route: Route) {
+function ViewFor(route: Route, query: URLSearchParams) {
   switch (route.name) {
-    case "login":
-      return <LoginView />;
+    case "login": {
+      // Prefill email dari halaman Akun Demo (?email=...) — sandi tetap diketik
+      // manual. key per email = reset state form saat ganti akun demo (pola
+      // "reset state dengan key" dari React, tanpa setState di dalam effect).
+      const loginEmail = query.get("email") || undefined;
+      return <LoginView key={loginEmail ?? "kosong"} initialEmail={loginEmail} />;
+    }
+    case "demo-accounts":
+      return <DemoAccountsView />;
     case "home":
       return <HomeView />;
     case "order":
@@ -278,7 +288,7 @@ export default function AppShell() {
     const roleParam = query.get("role") === "DRIVER" ? "DRIVER" : undefined;
     view = <RegisterView initialRole={roleParam} />;
   } else {
-    view = ViewFor(route);
+    view = ViewFor(route, query);
   }
 
   return (

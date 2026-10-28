@@ -55,10 +55,10 @@ function AuthLayout({ children, title, subtitle }: { children: React.ReactNode; 
 }
 
 // ================================ MASUK ================================
-export function LoginView() {
+export function LoginView({ initialEmail }: { initialEmail?: string }) {
   const { toast } = useToast();
   const { refresh } = useAuth();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail || "");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -82,12 +82,6 @@ export function LoginView() {
       else navigate("/beranda");
     } else navigate("/beranda");
   }
-
-  const demos: Array<{ label: string; email: string; desc: string }> = [
-    { label: "Penumpang", email: "penumpang@komah.id", desc: "Rani Oktaviani" },
-    { label: "Driver", email: "driver@komah.id", desc: "Ahmad Fauzan" },
-    { label: "Admin", email: "admin@komah.id", desc: "Panel verifikasi" },
-  ];
 
   return (
     <AuthLayout title="Masuk ke KOMAH" subtitle="Gunakan email dan kata sandi yang kamu daftarkan.">
@@ -145,29 +139,17 @@ export function LoginView() {
         </Button>
       </form>
 
-      <div className="mt-7 rounded-2xl border border-dashed border-unp/40 bg-unp-soft/60 p-4">
-        <p className="text-xs font-extrabold uppercase tracking-wider text-unp-dark">Akun demo (klik untuk langsung masuk)</p>
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {demos.map((d) => (
-            <button
-              key={d.label}
-              type="button"
-              onClick={() => doLogin(d.email, "komah123")}
-              disabled={busy}
-              className="rounded-xl border border-unp/25 bg-card px-2 py-2.5 text-center transition-all hover:border-unp hover:shadow-md disabled:opacity-60"
-            >
-              <span className="block text-xs font-extrabold text-unp-dark">{d.label}</span>
-              <span className="mt-0.5 block text-[10px] leading-tight text-muted-foreground">{d.desc}</span>
-            </button>
-          ))}
-        </div>
-        <p className="mt-3 text-[11px] text-muted-foreground">Sandi semua akun demo: komah123</p>
-      </div>
-
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Belum punya akun?{" "}
         <button onClick={() => navigate("/daftar")} className="font-bold text-unp hover:underline">
           Daftar sekarang
+        </button>
+      </p>
+
+      <p className="mt-3 text-center text-xs text-muted-foreground">
+        Ingin mencoba dulu?{" "}
+        <button onClick={() => navigate("/akun-demo")} className="font-bold text-unp hover:underline">
+          Lihat info akun demo
         </button>
       </p>
     </AuthLayout>
