@@ -21,11 +21,10 @@ import { apiCall, navigate, rupiah, timeId, useApi, useAuth } from "./lib";
 import { TypeIcon, UserAvatar } from "./bits";
 import { DriverActiveOrder } from "./driver-active-order";
 import { DriverOrderPreview } from "./driver-order-preview";
-import { ensurePushSubscription, playNewOrderChime, removePushSubscription } from "./push";
+import { ensurePushSubscription, NOTIF_KEY, playNewOrderChime, removePushSubscription } from "./push";
 import type { DriverDashboardT, OrderT } from "@/lib/types";
 
 // Preferensi toggle notifikasi driver (tersimpan per perangkat).
-const NOTIF_KEY = "komah_notif_push";
 
 export function DriverDashboardView() {
   const { toast } = useToast();

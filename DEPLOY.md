@@ -145,6 +145,7 @@ komah.vercel.app langsung berfungsi tanpa deploy ulang.
 | `npm warn install-scripts ...` di build log Vercel | Fitur keamanan baru npm yang memberi tahu paket mana yang punya install script — **hanya peringatan, bukan error**; build tetap sukses | Tidak perlu apa-apa |
 | `Security Error: Content at ... may not load or link to file:///.` di console Firefox | Halaman/b extension browser menautkan berkas lokal — **bukan dari kode KOMAH** (sudah diverifikasi) | Coba mode Private Window / matikan extension; abaikan jika aplikasi tetap jalan |
 | Upload KTM/avatar gagal di Vercel | Filesystem Vercel read-only | Sudah otomatis: foto ≤ 1 MB disematkan sebagai data URL di database; lebih dari itu kecilkan dulu fotonya |
+| Login menolak dengan pesan "terkunci sementara" | Proteksi brute-force: 5x sandi salah → akun terkunci 15 menit (per akun) | Tunggu 15 menit, atau restart server di dev lokal; jangan bagikan sandi demo secara publik |
 
 
 ## Catatan penting

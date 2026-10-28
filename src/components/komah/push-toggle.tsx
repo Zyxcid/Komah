@@ -10,10 +10,9 @@ import { Bell } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiCall } from "./lib";
-import { ensurePushSubscription, removePushSubscription } from "./push";
+import { ensurePushSubscription, NOTIF_KEY, removePushSubscription } from "./push";
 
 // Sama dengan dashboard driver — satu preferensi per perangkat.
-const NOTIF_KEY = "komah_notif_push";
 
 export function PushToggleCard() {
   const { toast } = useToast();

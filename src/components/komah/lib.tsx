@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { AddressT, LocationT, MeT, OrderStatus, OrderType } from "@/lib/types";
-import { removePushSubscription } from "./push";
+import { NOTIF_KEY, removePushSubscription } from "./push";
 
 // ===================== Router hash sederhana =====================
 export type Route =
@@ -161,6 +161,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {
       // Biarkan proses keluar tetap berjalan apa pun yang terjadi.
+    }
+    // Reset preferensi notifikasi perangkat ini — pengguna berikutnya di
+    // perangkat yang sama tidak otomatis berlangganan akun lama.
+    try {
+      localStorage.removeItem(NOTIF_KEY);
+    } catch {
+      // localStorage bisa tidak tersedia (mode privasi) — abaikan.
     }
     await fetch("/api/auth/logout", { method: "POST" });
     setMe(null);
