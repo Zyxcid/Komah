@@ -6,7 +6,7 @@ Aplikasi mendukung **dua mode database** yang dipilih otomatis dari isi
 | Mode | `DATABASE_URL` | Kapan dipakai |
 |---|---|---|
 | SQLite offline (default) | `file:../db/custom.db` | Development & coba-coba fitur, tanpa internet |
-| PostgreSQL (Neon/Supabase) | `postgresql://...` | Deploy online di Vercel |
+| PostgreSQL (Supabase) | `postgresql://...` | Deploy online di Vercel |
 
 ## Menjalankan lokal (3 langkah, offline)
 
@@ -17,8 +17,10 @@ npm run dev
 ```
 
 Buka http://localhost:3000. Database SQLite (`db/custom.db`) sudah termasuk
-beserta data demo, dan `.env` (kunci database + VAPID notifikasi) juga sudah
-disertakan sehingga semuanya langsung jalan tanpa setup apa pun.
+beserta data demo, dan `.env` (kunci database + VAPID untuk pengujian lokal)
+juga disertakan sehingga semuanya langsung jalan tanpa setup apa pun. Di
+repositori GitHub `.env` sengaja tidak ada (sudah di-`.gitignore`) — salin
+dari `.env.example` bila mengambil kode langsung dari repo.
 
 Akun demo (sandi `komah123`): `penumpang@komah.id`, `driver@komah.id`,
 `admin@komah.id`.
@@ -72,21 +74,24 @@ npx web-push generate-vapid-keys
 Ganti kunci akan membuat langganan lama tidak valid; cukup matikan lalu
 nyalakan lagi toggle notifikasi di dashboard driver.
 
-## Berpindah ke database Neon (saat mau deploy online)
+## Berpindah ke database Supabase (saat mau deploy online)
 
-1. Buat project gratis di https://neon.tech (bisa login pakai akun GitHub),
-   pilih region terdekat (mis. Singapore `ap-southeast-1`).
-2. Salin **Pooled connection string** dari Dashboard → Connection String:
+1. Buat project gratis di https://supabase.com (bisa login pakai akun GitHub),
+   pilih region terdekat (mis. Singapore).
+2. Salin connection string dari Dashboard → Project Settings → Database →
+   Connection string. Untuk aplikasi serverless seperti Vercel, pakai
+   **connection pooler** (mode Session, port 5432):
    ```
-   postgresql://user:password@ep-xxxxxx-pooler.ap-southeast-1.aws.neon.tech/komah?sslmode=require
+   postgresql://postgres.[project-ref]:[password]@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
    ```
+   (Koneksi langsung juga bisa: ganti host menjadi `db.[project-ref].supabase.co`.)
 3. Tempel ke `.env` sebagai `DATABASE_URL` (menggantikan baris `file:...`).
 4. Buat semua tabel + isi data demo:
    ```bash
    npm run db:push
    npm run db:seed
    ```
-   Perintah ini otomatis tahu sedang menunjuk Neon (bukan SQLite).
+   Perintah ini otomatis tahu sedang menunjuk Supabase (bukan SQLite).
 
 ## Deploy ke Vercel
 
@@ -95,8 +100,8 @@ nyalakan lagi toggle notifikasi di dashboard driver.
 
    | Name | Value |
    |---|---|
-   | `DATABASE_URL` | connection string Neon (pooled) |
-   | `VAPID_PUBLIC_KEY` | kunci publik VAPID (sama seperti di `.env` lokal) |
+   | `DATABASE_URL` | connection string Supabase (pooler) |
+   | `VAPID_PUBLIC_KEY` | kunci publik VAPID (generate: `npx web-push generate-vapid-keys`) |
    | `VAPID_PRIVATE_KEY` | kunci privat VAPID |
    | `VAPID_SUBJECT` | `mailto:admin@komah.id` |
    | `AUTH_SECRET` | string acak panjang (lihat bawah) |
@@ -111,14 +116,14 @@ nyalakan lagi toggle notifikasi di dashboard driver.
 
 Verifikasi cepat setelah deploy:
 
-- Login sebagai admin → data verifikasi driver tampil = koneksi Neon hidup.
+- Login sebagai admin → data verifikasi driver tampil = koneksi Supabase hidup.
 - Buat pesanan dari HP kedua → notifikasi muncul di perangkat driver = Web Push produksi jalan.
 
-### PENTING: database Neon sudah lama + ada fitur baru? Jalankan `db:push` lagi
+### PENTING: database Supabase sudah lama + ada fitur baru? Jalankan `db:push` lagi
 
 Tabel hanya dibuat saat kamu menjalankan `npm run db:push`. Kalau kamu menambah
 fitur baru (contoh: notifikasi Web Push menambah tabel `PushSubscription`),
-database Neon lama **belum punya tabelnya** — akibatnya toggle notifikasi gagal
+database Supabase lama **belum punya tabelnya** — akibatnya toggle notifikasi gagal
 dengan error 500 `Terjadi kesalahan server.` di `/api/push/subscribe`.
 
 Perbaikannya (aman, data lama tidak tersentuh — Prisma hanya menambah tabel
@@ -127,13 +132,13 @@ yang kurang):
 ```bash
 # di folder proyek, TANPA mengubah .env (env var menimpa sementara):
 # Linux / macOS:
-DATABASE_URL="postgresql://...neon.../komah?sslmode=require" npm run db:push
+DATABASE_URL="postgresql://...supabase.../postgres" npm run db:push
 
 # Windows PowerShell:
-$env:DATABASE_URL="postgresql://...neon.../komah?sslmode=require"; npm run db:push
+$env:DATABASE_URL="postgresql://...supabase.../postgres"; npm run db:push
 ```
 
-Atau: ganti `DATABASE_URL` di `.env` ke connection string Neon → `npm run db:push`
+Atau: ganti `DATABASE_URL` di `.env` ke connection string Supabase → `npm run db:push`
 → kembalikan ke `file:../db/custom.db`. Setelah itu toggle notifikasi di
 komah.vercel.app langsung berfungsi tanpa deploy ulang.
 
@@ -141,7 +146,7 @@ komah.vercel.app langsung berfungsi tanpa deploy ulang.
 
 | Gejala | Penyebab | Solusi |
 |---|---|---|
-| Toggle notifikasi → 500 `Terjadi kesalahan server.` | Tabel `PushSubscription` belum ada di Neon | `DATABASE_URL=...neon... npm run db:push` (lihat di atas) |
+| Toggle notifikasi → 500 `Terjadi kesalahan server.` | Tabel `PushSubscription` belum ada di Supabase | `DATABASE_URL=...supabase... npm run db:push` (lihat di atas) |
 | `npm warn install-scripts ...` di build log Vercel | Fitur keamanan baru npm yang memberi tahu paket mana yang punya install script — **hanya peringatan, bukan error**; build tetap sukses | Tidak perlu apa-apa |
 | `Security Error: Content at ... may not load or link to file:///.` di console Firefox | Halaman/b extension browser menautkan berkas lokal — **bukan dari kode KOMAH** (sudah diverifikasi) | Coba mode Private Window / matikan extension; abaikan jika aplikasi tetap jalan |
 | Upload KTM/avatar gagal di Vercel | Filesystem Vercel read-only | Sudah otomatis: foto ≤ 1 MB disematkan sebagai data URL di database; lebih dari itu kecilkan dulu fotonya |

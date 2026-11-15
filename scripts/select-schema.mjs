@@ -8,10 +8,10 @@
 //
 // Aturannya sederhana:
 //   DATABASE_URL diawali "file:"  → SQLite offline (prisma/schema.local.prisma)
-//   selain itu (postgresql://… )  → PostgreSQL/Neon (prisma/schema.prisma)
+//   selain itu (postgresql://… )  → PostgreSQL/Supabase (prisma/schema.prisma)
 //
 // Dipanggil otomatis oleh npm: postinstall, predev, prebuild, db:push, dst.
-// Dipakai juga saat deploy Vercel (DATABASE_URL = Neon → otomatis PostgreSQL).
+// Dipakai juga saat deploy Vercel (DATABASE_URL = Supabase → otomatis PostgreSQL).
 
 import fs from "node:fs";
 import path from "node:path";

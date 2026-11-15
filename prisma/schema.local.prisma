@@ -5,7 +5,7 @@ generator client {
 datasource db {
   // SQLite untuk development offline — TANPA internet, tanpa setup apa pun.
   // Dipilih otomatis oleh scripts/select-schema.mjs saat DATABASE_URL
-  // diawali "file:". Untuk produksi (Vercel + Neon) pakai prisma/schema.prisma.
+  // diawali "file:". Untuk produksi (Vercel + Supabase) pakai prisma/schema.prisma.
   provider = "sqlite"
   url      = "file:../db/custom.db"
 }

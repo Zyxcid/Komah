@@ -34,9 +34,9 @@ Buka **http://localhost:3000** di browser. Selesai!
 > 📦 `.env` beserta database demo (`db/custom.db`, mode SQLite offline) sudah
 > termasuk di ZIP — tanpa setup apa pun, tanpa internet setelah `npm install`.
 >
-> 💡 Ingin langsung memakai PostgreSQL/Neon (mis. untuk deploy)? Ganti
+> 💡 Ingin langsung memakai PostgreSQL/Supabase (mis. untuk deploy)? Ganti
 > `DATABASE_URL` di `.env` dengan connection string dari
-> **[Neon](https://neon.tech)** lalu `npm run db:push` — langkah detailnya di
+> **[Supabase](https://supabase.com)** lalu `npm run db:push` — langkah detailnya di
 > [DEPLOY.md](DEPLOY.md). Mode database dipilih otomatis dari isi `DATABASE_URL`.
 
 ### Akun demo (sandi semuanya: `komah123`)
@@ -192,7 +192,7 @@ Edit daftar lokasi (beserta koordinat `lat`/`lng`) di `prisma/seed.ts`, lalu `np
 4. iPhone: pasang dulu KOMAH ke layar utama (Bagikan → Tambah ke Layar Utama), iOS 16.4+.
 5. Mode incognito tidak bisa menerima push — pakai jendela biasa untuk driver.
 
-**Berganti database SQLite ↔ Neon?**
+**Berganti database SQLite ↔ Supabase?**
 Cukup ganti `DATABASE_URL` di `.env` — `scripts/select-schema.mjs` memilih schema yang tepat otomatis saat `npm run dev` / `db:push`. Tidak ada kode yang perlu diubah.
 
 **Gagal build karena unduhan font (offline)?**
@@ -202,7 +202,7 @@ Pastikan terhubung internet saat `npm run dev`/`build` pertama kali; Next.js aka
 Semua akun demo memakai `komah123`, atau reset seluruh data dengan `npm run db:reset`.
 
 **Mau deploy ke internet (gratis)?**
-Ikuti [DEPLOY.md](DEPLOY.md) — Vercel + database PostgreSQL gratis di Neon, tanpa kartu kredit.
+Ikuti [DEPLOY.md](DEPLOY.md) — Vercel + database PostgreSQL gratis di Supabase, tanpa kartu kredit.
 
 **Mau pakai Bun?**
 `bun install && bun run dev` juga berfungsi (proyek ini awalnya dikembangkan dengan Bun).

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  // PostgreSQL untuk produksi (Vercel + Neon/Supabase).
+  // PostgreSQL untuk produksi (Vercel + Supabase).
   // Untuk dev lokal offline: pakai prisma/schema.local.prisma (SQLite) —
   // scripts/select-schema.mjs memilih otomatis dari DATABASE_URL (lihat DEPLOY.md).
   provider = "postgresql"
