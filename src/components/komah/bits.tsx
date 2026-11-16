@@ -2,7 +2,7 @@
 
 import { Bike, CheckCircle2, Package, Star, UtensilsCrossed, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { initials, STATUS_META, TYPE_META } from "./lib";
+import { initials, safeImgUrl, STATUS_META, TYPE_META } from "./lib";
 import type { OrderStatus, OrderType } from "@/lib/types";
 
 export function LogoKOMAH({ dark = false, size = "md" }: { dark?: boolean; size?: "sm" | "md" | "lg" }) {
@@ -42,10 +42,11 @@ export function UserAvatar({
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % 997;
   const color = palette[hash % palette.length];
-  if (url) {
+  const safeUrl = safeImgUrl(url);
+  if (safeUrl) {
     return (
       <img
-        src={url}
+        src={safeUrl}
         alt={`Foto ${name}`}
         className={cn("rounded-full object-cover ring-2 ring-white shadow-sm", className)}
         style={{ width: size, height: size }}

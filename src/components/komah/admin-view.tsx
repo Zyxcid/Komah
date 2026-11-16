@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { apiCall, dateId, useApi } from "./lib";
+import { apiCall, dateId, safeImgUrl, useApi } from "./lib";
 import { EmptyState, UserAvatar } from "./bits";
 
 interface PendingDriver {
@@ -144,10 +144,10 @@ export function AdminView() {
             <DialogTitle>Kartu Tanda Mahasiswa: {preview?.name}</DialogTitle>
             <DialogDescription>Periksa kesesuaian nama, NIM, dan foto dengan data pendaftaran.</DialogDescription>
           </DialogHeader>
-          {preview?.ktmUrl ? (
+          {safeImgUrl(preview?.ktmUrl) ? (
             <img
-              src={preview.ktmUrl}
-              alt={`KTM ${preview.name}`}
+              src={safeImgUrl(preview?.ktmUrl) as string}
+              alt={`KTM ${preview?.name}`}
               className="w-full rounded-2xl border border-border object-contain"
             />
           ) : (

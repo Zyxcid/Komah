@@ -148,7 +148,8 @@ komah.vercel.app langsung berfungsi tanpa deploy ulang.
 |---|---|---|
 | Toggle notifikasi → 500 `Terjadi kesalahan server.` | Tabel `PushSubscription` belum ada di Supabase | `DATABASE_URL=...supabase... npm run db:push` (lihat di atas) |
 | `npm warn install-scripts ...` di build log Vercel | Fitur keamanan baru npm yang memberi tahu paket mana yang punya install script — **hanya peringatan, bukan error**; build tetap sukses | Tidak perlu apa-apa |
-| `Security Error: Content at ... may not load or link to file:///.` di console Firefox | Halaman/b extension browser menautkan berkas lokal — **bukan dari kode KOMAH** (sudah diverifikasi) | Coba mode Private Window / matikan extension; abaikan jika aplikasi tetap jalan |
+| `Security Error: Content at ... may not load or link to file:///.` di console Firefox | Data usang (avatar/KTM) yang menyimpan path lokal `file:///`, atau extension browser | Kode kini menyaring otomatis: URL non-http(s)/data ditampilkan sebagai fallback, bukan error. Kalau masih muncul, coba Private Window / matikan extension |
+| Panel admin (Driver/Laporan) → 500 `Unknown field 'banned'` / `Cannot read properties of undefined (reading 'findMany')` | Prisma Client di build Vercel usang (node_modules dipulihkan dari cache, generate dilewati) | Sudah fixed: `build` kini selalu menjalankan `prisma generate` sebelum `next build`. Bila masih terjadi di deployment lama: Redeploy dengan **Clear Build Cache** |
 | Upload KTM/avatar gagal di Vercel | Filesystem Vercel read-only | Sudah otomatis: foto ≤ 1 MB disematkan sebagai data URL di database; lebih dari itu kecilkan dulu fotonya |
 | Login menolak dengan pesan "terkunci sementara" | Proteksi brute-force: 5x sandi salah → akun terkunci 15 menit (per akun) | Tunggu 15 menit, atau restart server di dev lokal; jangan bagikan sandi demo secara publik |
 

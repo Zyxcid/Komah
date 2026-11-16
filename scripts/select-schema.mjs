@@ -2,7 +2,7 @@
 // Memilih schema Prisma yang cocok dengan DATABASE_URL lalu (opsional)
 // menjalankan perintah prisma terkait.
 //
-//   node scripts/select-schema.mjs              → prisma generate (bila perlu)
+//   node scripts/select-schema.mjs              → prisma generate (SELALU)
 //   node scripts/select-schema.mjs --push       → prisma db push --accept-data-loss
 //   node scripts/select-schema.mjs --force-reset→ prisma db push --force-reset
 //
@@ -20,7 +20,6 @@ import { execSync } from "node:child_process";
 const root = process.cwd();
 const PG_SCHEMA = "prisma/schema.prisma";
 const SQLITE_SCHEMA = "prisma/schema.local.prisma";
-const GENERATED = "node_modules/.prisma/client/schema.prisma";
 
 function resolveDatabaseUrl() {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
@@ -32,15 +31,6 @@ function resolveDatabaseUrl() {
     if (m) return m[1].trim();
   }
   return "";
-}
-
-function currentGeneratedProvider() {
-  try {
-    const s = fs.readFileSync(path.join(root, GENERATED), "utf8");
-    return s.match(/provider\s*=\s*"(\w+)"/)?.[1] || null;
-  } catch {
-    return null;
-  }
 }
 
 const url = resolveDatabaseUrl();
@@ -62,11 +52,11 @@ if (arg === "--push" || arg === "--force-reset") {
   process.exit(0);
 }
 
-// --- Mode default (generate): hanya regenerasi bila provider client berubah ---
-if (currentGeneratedProvider() === want) {
-  console.log(`[db] client Prisma sudah ${want} — siap.`);
-  process.exit(0);
-}
-
-console.log(`[db] aktifkan client Prisma ${want} (${schema})`);
+// --- Mode default (generate): SELALU regenerasi client dari schema aktif ---
+// Jangan pernah skip walau provider client sudah cocok: build Vercel bisa
+// memulihkan node_modules lama dari cache (postinstall tidak jalan), dan
+// client usang membuat field/model baru tak dikenal saat runtime
+// (error 500 "Unknown field ..." / "Cannot read properties of undefined").
+// prisma generate lokal cepat (~100 ms), jadi selalu jalankan saja.
+console.log(`[db] generate client Prisma ${want} (${schema})`);
 execSync(`npx prisma generate --schema ${schema}`, { stdio: "inherit" });

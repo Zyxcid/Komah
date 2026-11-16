@@ -340,6 +340,18 @@ export function rupiah(n: number) {
   return `Rp${n.toLocaleString("id-ID")}`;
 }
 
+// URL gambar yang aman untuk <img src>: hanya path relatif, http(s), atau
+// data URL. Skema lain (mis. file:/// dari data usang) diganti null agar
+// komponen jatuh ke fallback — mencegah "Security Error: may not load or
+// link to file:///" di browser.
+export function safeImgUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const u = url.trim();
+  if (!u) return null;
+  if (u.startsWith("/") || /^https?:\/\//i.test(u) || u.startsWith("data:")) return u;
+  return null;
+}
+
 export function timeId(iso: string) {
   return new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 }
