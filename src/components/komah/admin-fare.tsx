@@ -245,28 +245,9 @@ export function AdminFareView() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5 px-4 pt-6 sm:px-6">
-      {/* Header */}
-      <div className="rounded-3xl border-2 border-unp/30 bg-gradient-to-br from-unp-soft/60 to-card p-5 shadow-sm">
-        <div className="flex items-center gap-3.5">
-          <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
-            <Wallet size={24} />
-          </span>
-          <div>
-            <h1 className="text-lg font-extrabold">Kelola Tarif Resmi</h1>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Angka ini dipakai server untuk SEMUA pesanan baru. Pesanan lama memakai tarif yang sudah tersimpan di pesanannya.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* 1) Tabel jarak tempuh — satu tabel menyambung */}
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
         <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">1 · Tarif jarak tempuh</h2>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Satu tabel yang menyambung, persis daftar resmi: <b>dari 2,3 km ➜ Rp7.000</b> berarti 2,3–3,0 km dikenakan Rp7.000.
-          Di bawah baris pertama memakai baris pertama (tarif minimum). Jarak dibulatkan ke atas per 0,1 km s.d. 10 km, di atasnya per km utuh.
-        </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {distRows.map((r, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -316,10 +297,6 @@ export function AdminFareView() {
       {/* 2) Tambahan hujan per rentang jarak */}
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
         <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">2 · Tambahan hujan</h2>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Berlaku bila pelanggan tetap minta jalan saat hujan — besar tambahan mengikuti rentang jarak.
-          Bawaan resmi: s.d. 10 km ➜ +Rp2.000, di atasnya ➜ +Rp4.000.
-        </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {rainBounded.map((r, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -373,8 +350,6 @@ export function AdminFareView() {
       {/* 3) Aturan Food Delivery */}
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
         <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">3 · Aturan antar MAKANAN</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Porsi, tempat pembelian, waktu tunggu, hujan flat, dan jam malam — hanya layanan MAKANAN.</p>
-
         <div className="mt-4 space-y-1.5">
           <Label className="text-xs font-bold">Hujan flat MAKANAN (Rp) — di luar rentang hujan di atas</Label>
           <Input value={foodRainFlat} onChange={(e) => { setFoodRainFlat(e.target.value); markDirty(); }} inputMode="numeric" className={cn(inputCls, "max-w-40")} />

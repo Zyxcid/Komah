@@ -149,8 +149,7 @@ export function AdminLocationsView() {
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="max-w-md text-sm text-muted-foreground">
-          Titik yang bisa dipilih penumpang. Atur nama, zona, dan koordinat peta —
-          tarif dihitung otomatis dari jarak rute, jadi pastikan koordinat terisi agar jarak terukur.
+          Titik yang bisa dipilih penumpang. Atur nama, zona, dan koordinat peta.
         </p>
         <Button onClick={openAdd} className="gap-2 bg-gold font-extrabold hover:bg-gold-dark">
           <Plus size={16} /> Tambah Lokasi
