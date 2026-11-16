@@ -94,11 +94,12 @@ npm run db:reset    # Hapus semua tabel + tanam ulang data demo (reset bersih)
 **Untuk admin (role ADMIN)**
 - Panel verifikasi calon driver: pratinjau KTM, setujui atau tolak
 
-**Tarif (zona, tampil di aplikasi sebelum pesan)**
-- Dalam kampus UNP: flat **Rp6.000**
-- Kampus ↔ luar (kos/area sekitar): tarif per lokasi (mis. Air Tawar Rp7.000, Kurao Rp9.000)
-- Luar ↔ luar: tarif tertinggi + Rp1.000
-- Pembayaran: **tunai langsung ke driver** saat tiba
+**Tarif (daftar harga resmi KOMAH, dihitung dari jarak tempuh rute)**
+- Jarak tempuh: 100 m–2,2 km **Rp6.000**, bertambah bertingkat tiap 0,5 km hingga 10 km (Rp20.000), lalu per km utuh hingga 25 km (Rp55.000)
+- Tambahan hujan (pelanggan tetap minta jalan): ≤10 km **+Rp2.000**, >10 km **+Rp4.000**
+- Aturan antar makanan: porsi 3–4 **+Rp2.000** … ≥9 **+Rp5.000**; tempat pembelian ke-2 **+Rp1.000** … ≥5 **+Rp5.000**; waktu tunggu ≥7 menit **+Rp1.000** … ≥60 menit **+Rp8.000** (dipilih driver saat menyelesaikan pesanan); jam malam 22:30 **+Rp1.000**, 23:00 **+Rp2.000**, 00:00 **+Rp5.000**; hujan **+Rp2.000**
+- Semua komponen tarif tampil transparan di aplikasi sebelum memesan; pembayaran **tunai langsung ke driver** saat tiba
+- Implementasi: `src/lib/fare.ts` (bersama uji otomatis `scripts/test-fare.ts`)
 
 ---
 
@@ -150,8 +151,8 @@ komah/
 │   │   │   └── lib.tsx, bits.tsx   # Router hash & komponen kecil bersama
 │   │   └── ui/                # Komponen shadcn/ui
 │   ├── hooks/                 # use-mobile, use-toast
-│   └── lib/                   # auth (scrypt+HMAC), session, fare (zona tarif),
-│                               # db (Prisma client),
+│   └── lib/                   # auth (scrypt+HMAC), session, fare (tarif resmi
+│                               # jarak + surcharge), db (Prisma client),
 │                               # push (pengirim Web Push sisi server),
 │                               # types, utils
 ├── db/custom.db               # Database SQLite demo (dev offline)
@@ -182,8 +183,8 @@ Jalankan di port lain: `npm run dev -- -p 3001`.
 **Error `@prisma/client did not initialize yet`?**
 Jalankan `npm run db:generate` lalu mulai ulang `npm run dev`.
 
-**Ingin mengubah/menambah lokasi UNP atau tarif?**
-Edit daftar lokasi (beserta koordinat `lat`/`lng`) di `prisma/seed.ts`, lalu `npm run db:reset`. Tarif antar-zona dihitung otomatis di `src/lib/fare.ts`.
+**Ingin mengubah/menambah lokasi UNP?**
+Edit daftar lokasi (beserta koordinat `lat`/`lng`) di `prisma/seed.ts`, lalu `npm run db:reset`. Pastikan setiap lokasi punya koordinat — jarak rute (dasar tarif) dihitung dari posisi peta; lokasi tanpa koordinat dikenai tarif minimum.
 
 **Notifikasi push tidak muncul?**
 1. Pastikan toggle notifikasi menyala (driver: di dashboard; penumpang: kartu Notifikasi Pesanan di Profil) dan izin notifikasi browser diizinkan (ikon kunci di address bar).

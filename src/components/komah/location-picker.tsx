@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { PIN_DETAIL_RE, apiCall, parsePinDetail, pinDetail, rupiah, useAuth } from "./lib";
+import { PIN_DETAIL_RE, apiCall, parsePinDetail, pinDetail, useAuth } from "./lib";
 import { PinMap } from "./map-view";
 import type { AddressT, LocationT } from "@/lib/types";
 
@@ -198,10 +198,7 @@ export function LocationPicker({
           {value ? (
             <>
               <span className="block truncate text-sm font-bold text-foreground">{value.name}</span>
-              <span className="block text-xs text-muted-foreground">
-                {CATEGORY_META[value.category].label}
-                {value.category !== "KAMPUS" && ` • ${rupiah(value.fare)} dari kampus`}
-              </span>
+              <span className="block text-xs text-muted-foreground">{CATEGORY_META[value.category].label}</span>
             </>
           ) : (
             <span className="block text-sm text-muted-foreground">{placeholder}</span>
@@ -303,9 +300,7 @@ export function LocationPicker({
                                     </span>
                                   )}
                                 </span>
-                                <span className="block text-xs text-muted-foreground">
-                                  {loc.category === "KAMPUS" ? "Tarif dasar" : `${rupiah(loc.fare)} dari kampus`}
-                                </span>
+                                <span className="block text-xs text-muted-foreground">{CATEGORY_META[loc.category].label}</span>
                               </span>
                               {pending?.id === loc.id && <Check size={16} className="shrink-0 text-unp" />}
                             </button>

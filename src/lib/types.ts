@@ -2,11 +2,23 @@ export type Role = "USER" | "DRIVER" | "ADMIN";
 export type OrderType = "OJEK" | "BARANG" | "MAKANAN";
 export type OrderStatus = "MENCARI" | "DIKONFIRMASI" | "BERJALAN" | "SELESAI" | "DIBATALKAN";
 
+/** Rincian tarif resmi — disimpan server di Order.fareBreakdown. */
+export interface FareBreakdownT {
+  distanceKm: number;
+  base: number;
+  rain: number;
+  foodRain: number;
+  portions: number;
+  places: number;
+  waiting: number;
+  night: number;
+  total: number;
+}
+
 export interface LocationT {
   id: string;
   name: string;
   category: "KAMPUS" | "KOS" | "PUBLIK";
-  fare: number;
   isPopular: boolean;
   lat: number | null;
   lng: number | null;
@@ -55,6 +67,19 @@ export interface OrderT {
   driverLat: number | null;
   driverLng: number | null;
   driverPosAt: string | null;
+  // ==== Tarif resmi (jarak tempuh + surcharge) ====
+  /** Jarak rute yang dipakai menghitung tarif (meter); null = tanpa koordinat. */
+  distanceMeters: number | null;
+  /** Pelanggan tetap minta jalan saat hujan. */
+  rain: boolean;
+  /** MAKANAN: jumlah porsi/bungkus. */
+  portions: number | null;
+  /** MAKANAN: jumlah tempat pembelian. */
+  places: number | null;
+  /** MAKANAN: lama driver menunggu (menit) — diisi saat pesanan selesai. */
+  waitingMinutes: number | null;
+  /** Rincian tarif resmi (komponen tarif saat pesanan dibuat/diselesaikan). */
+  fareBreakdown: FareBreakdownT | null;
   fare: number;
   paymentMethod: string;
   status: OrderStatus;

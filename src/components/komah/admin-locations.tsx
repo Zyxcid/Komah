@@ -1,8 +1,9 @@
 "use client";
 
-// Kelola lokasi (admin) — tambah titik baru dengan nama & tarif zona sendiri,
-// ubah tarif/nama, hapus titik yang tidak terpakai. Tarif dasar dalam kampus
-// juga diatur dari sini.
+// Kelola lokasi (admin) — tambah titik baru dengan nama & koordinat, ubah
+// nama/koordinat, hapus titik yang tidak terpakai. Tarif tidak diatur di
+// sini lagi: harga dihitung otomatis dari jarak tempuh sesuai daftar harga
+// resmi KOMAH (src/lib/fare.ts) — ringkasannya diperlihatkan sebagai info.
 
 import { useMemo, useState } from "react";
 import {
@@ -16,7 +17,6 @@ import {
   Plus,
   Store,
   Trash2,
-  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { apiCall, navigate, rupiah, useApi } from "./lib";
+import { apiCall, navigate, useApi } from "./lib";
 import { EmptyState } from "./bits";
 import { PinMap } from "./map-view";
 import type { LocationT } from "@/lib/types";
@@ -60,11 +60,10 @@ const UNP_CENTER = { lat: -0.9009, lng: 100.3505 };
 
 export function AdminLocationsView() {
   const { toast } = useToast();
-  const { data, refetch, loading } = useApi<{ locations: LocationT[]; baseFare: number }>("/api/admin/locations", {
+  const { data, refetch, loading } = useApi<{ locations: LocationT[] }>("/api/admin/locations", {
     interval: 30000,
   });
   const locations = data?.locations || [];
-  const baseFare = data?.baseFare ?? 6000;
 
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -73,15 +72,10 @@ export function AdminLocationsView() {
   const [editing, setEditing] = useState<LocationT | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState<LocationT["category"]>("KAMPUS");
-  const [fare, setFare] = useState("6000");
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [isPopular, setIsPopular] = useState(false);
   const [formBusy, setFormBusy] = useState(false);
-
-  // Tarif dasar
-  const [baseFareDraft, setBaseFareDraft] = useState<string | null>(null);
-  const [fareBusy, setFareBusy] = useState(false);
 
   const grouped = useMemo(() => {
     return CATEGORIES.map((cat) => ({ cat, items: locations.filter((l) => l.category === cat) })).filter(
@@ -97,7 +91,6 @@ export function AdminLocationsView() {
     setEditing(null);
     setName("");
     setCategory("KAMPUS");
-    setFare("6000");
     setLat("");
     setLng("");
     setIsPopular(false);
@@ -108,7 +101,6 @@ export function AdminLocationsView() {
     setEditing(l);
     setName(l.name);
     setCategory(l.category);
-    setFare(String(l.fare));
     setLat(l.lat != null ? String(l.lat) : "");
     setLng(l.lng != null ? String(l.lng) : "");
     setIsPopular(l.isPopular);
@@ -124,7 +116,6 @@ export function AdminLocationsView() {
     const payload = {
       name: name.trim(),
       category,
-      fare: Number(fare),
       lat: lat.trim() === "" ? null : Number(lat),
       lng: lng.trim() === "" ? null : Number(lng),
       isPopular,
@@ -154,70 +145,32 @@ export function AdminLocationsView() {
     refetch();
   }
 
-  async function saveBaseFare() {
-    const v = Number(baseFareDraft);
-    if (!Number.isFinite(v) || v < 1000) {
-      toast({ title: "Tarif tidak valid", description: "Minimal Rp1.000.", variant: "destructive" });
-      return;
-    }
-    setFareBusy(true);
-    const { ok, data: res } = await apiCall("/api/admin/settings", "PUT", { baseFare: v });
-    setFareBusy(false);
-    if (!ok) {
-      toast({ title: "Gagal menyimpan tarif", description: res.error, variant: "destructive" });
-      return;
-    }
-    toast({ title: "Tarif dasar diperbarui", description: `Kini ${rupiah(v)} untuk rute dalam kampus.` });
-    setBaseFareDraft(null);
-    refetch();
-  }
-
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="max-w-md text-sm text-muted-foreground">
-          Titik yang bisa dipilih penumpang. Atur nama, zona, dan tarifnya.
+          Titik yang bisa dipilih penumpang. Atur nama, zona, dan koordinat peta.
         </p>
         <Button onClick={openAdd} className="gap-2 bg-gold font-extrabold hover:bg-gold-dark">
           <Plus size={16} /> Tambah Lokasi
         </Button>
       </div>
 
-      {/* Tarif dasar dalam kampus */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border-2 border-unp/25 bg-unp-soft/40 p-5">
+      {/* Ringkasan aturan harga resmi (info saja — otomatis dihitung sistem) */}
+      <div className="rounded-3xl border-2 border-unp/25 bg-unp-soft/40 p-5">
         <div className="flex items-center gap-3.5">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
-            <Wallet size={22} />
+            <MapPin size={22} />
           </span>
           <div>
-            <p className="text-sm font-extrabold">Tarif dasar dalam kampus</p>
-            <p className="text-xs text-muted-foreground">Berlaku untuk rute antar titik Area Kampus.</p>
+            <p className="text-sm font-extrabold">Harga otomatis sesuai daftar resmi KOMAH</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Tarif dihitung dari jarak tempuh rute: 100 m–2,2 km Rp6.000, bertambah bertingkat hingga
+              25 km, plus tambahan hujan, porsi, tempat pembelian, waktu tunggu, dan jam malam. Pastikan
+              setiap lokasi memiliki koordinat peta agar jarak terukur.
+            </p>
           </div>
         </div>
-        {baseFareDraft === null ? (
-          <button
-            onClick={() => setBaseFareDraft(String(baseFare))}
-            className="flex items-center gap-2 rounded-2xl border-2 border-unp/30 bg-card px-4 py-2.5 text-lg font-extrabold text-unp transition-colors hover:border-unp"
-          >
-            {rupiah(baseFare)} <Pencil size={14} className="text-muted-foreground" />
-          </button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              value={baseFareDraft}
-              onChange={(e) => setBaseFareDraft(e.target.value)}
-              className="h-11 w-32 border-2 text-right text-base font-bold"
-              autoFocus
-            />
-            <Button onClick={saveBaseFare} disabled={fareBusy} className="h-11 gap-1.5 bg-gold font-extrabold hover:bg-gold-dark">
-              {fareBusy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Simpan
-            </Button>
-            <Button variant="outline" onClick={() => setBaseFareDraft(null)} className="h-11 border-2 font-bold">
-              Batal
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Daftar lokasi per kategori */}
@@ -263,8 +216,7 @@ export function AdminLocationsView() {
                         )}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {cat === "KAMPUS" ? "Tarif dasar" : `${rupiah(l.fare)} dari kampus`}
-                        {l.lat != null && l.lng != null ? " • ada koordinat peta" : " • tanpa koordinat"}
+                        {l.lat != null && l.lng != null ? "Ada koordinat peta (jarak terukur)" : "Tanpa koordinat — tarif minimum"}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
@@ -318,7 +270,8 @@ export function AdminLocationsView() {
           <DialogHeader>
             <DialogTitle>{editing ? "Ubah Lokasi" : "Tambah Lokasi Baru"}</DialogTitle>
             <DialogDescription>
-              Nama, zona, dan tarif ini yang dilihat penumpang saat memesan.
+              Nama dan koordinat ini yang dilihat penumpang saat memesan. Tarif dihitung
+              otomatis dari jarak rute.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -357,32 +310,12 @@ export function AdminLocationsView() {
                   );
                 })}
               </div>
-              {category !== "KAMPUS" && (
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  Tarif di bawah dipakai untuk rute kampus ↔ lokasi ini.
-                </p>
-              )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="loc-fare" className="font-semibold">
-                  Tarif {category === "KAMPUS" ? "(tidak dipakai)" : "dari kampus"}
-                </Label>
-                <Input
-                  id="loc-fare"
-                  type="number"
-                  value={fare}
-                  onChange={(e) => setFare(e.target.value)}
-                  className="mt-1.5 border-2"
-                  disabled={category === "KAMPUS"}
-                />
-              </div>
-              <div className="flex items-end justify-end pb-1.5">
-                <label className="flex cursor-pointer items-center gap-2.5 text-sm font-semibold">
-                  <Switch checked={isPopular} onCheckedChange={setIsPopular} className="data-[state=checked]:bg-gold" />
-                  Tandai populer
-                </label>
-              </div>
+            <div className="flex items-center justify-end">
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm font-semibold">
+                <Switch checked={isPopular} onCheckedChange={setIsPopular} className="data-[state=checked]:bg-gold" />
+                Tandai populer
+              </label>
             </div>
             <div>
               <Label className="font-semibold">Titik di peta</Label>

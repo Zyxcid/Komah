@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
-import { calcFare } from "@/lib/fare";
-import { getBaseFare } from "@/lib/settings";
+import { calcOfficialFare, resolveDistanceMeters } from "@/lib/fare";
 import { pushNewOrderToDrivers } from "@/lib/push";
 import crypto from "crypto";
 
@@ -86,6 +85,16 @@ export async function POST(req: NextRequest) {
     const destLat = coord(body.destLat);
     const destLng = coord(body.destLng);
 
+    // Input tarif resmi (jarak rute diukur klien via OSRM; sisanya pilihan pelanggan).
+    const rain = body.rain === true;
+    const int0 = (v: unknown) => {
+      const n = Math.round(Number(v));
+      return Number.isFinite(n) && n >= 0 ? n : undefined;
+    };
+    const portions = type === "MAKANAN" ? Math.min(int0(body.portions) ?? 1, 50) : null;
+    const places = type === "MAKANAN" ? Math.min(int0(body.places) ?? 1, 20) : null;
+    const distanceMetersClient = int0(body.distanceMeters);
+
     if (!["OJEK", "BARANG", "MAKANAN"].includes(type)) {
       return NextResponse.json({ error: "Jenis layanan tidak valid." }, { status: 400 });
     }
@@ -122,8 +131,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Anda masih memiliki pesanan aktif. Selesaikan atau batalkan dulu." }, { status: 409 });
     }
 
-    const baseFare = await getBaseFare();
-    const fare = calcFare(pickup, dest, baseFare);
+    // Tarif resmi: jarak tempuh + surcharge (hujan/porsi/tempat/malam).
+    // Jarak dipilih server: ukuran rute klien bila wajar, jika tidak
+    // perkiraan garis lurus × faktor jalan (lihat src/lib/fare.ts).
+    const orderTime = new Date();
+    const distanceMeters = resolveDistanceMeters(
+      distanceMetersClient,
+      { lat: pickupLat ?? pickup.lat ?? null, lng: pickupLng ?? pickup.lng ?? null },
+      { lat: destLat ?? dest.lat ?? null, lng: destLng ?? dest.lng ?? null }
+    );
+    const breakdown = calcOfficialFare({
+      distanceKm: (distanceMeters ?? 100) / 1000,
+      type,
+      rain,
+      portions: portions ?? undefined,
+      places: places ?? undefined,
+      orderTime,
+    });
+    const fare = breakdown.total;
     const order = await db.order.create({
       data: {
         code: await generateCode(),
@@ -140,6 +165,11 @@ export async function POST(req: NextRequest) {
         destDetail: destDetail?.trim() || null,
         itemNote: itemNote?.trim() || null,
         passengerNote: passengerNote?.trim() || null,
+        distanceMeters,
+        rain,
+        portions,
+        places,
+        fareBreakdown: breakdown as unknown as object,
         fare,
         status: "MENCARI",
       },

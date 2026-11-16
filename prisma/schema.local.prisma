@@ -47,7 +47,9 @@ model Location {
   id         String   @id @default(cuid())
   name       String
   category   String   // KAMPUS | KOS | PUBLIK
-  fare       Int      // tarif dari/ke pusat kampus (Rp)
+  // Kolom usang (legacy): tarif zona lama — TIDAK dipakai lagi.
+  // Tarif kini dihitung dari jarak tempuh (lihat src/lib/fare.ts).
+  fare       Int      @default(6000)
   isPopular  Boolean  @default(false)
   lat        Float?   // koordinat peta (approx, untuk Leaflet/OSM)
   lng        Float?
@@ -96,8 +98,21 @@ model Order {
   driverLng      Float?
   driverPosAt    DateTime?
 
-  fare           Int       // total tarif (Rp)
-  paymentMethod  String    @default("TUNAI")
+  // ==== Tarif resmi (jarak tempuh + surcharge, sejak 15 Nov 2026) ====
+  // Jarak rute yang dipakai menghitung tarif (meter; null = tak ada
+  // koordinat → tarif minimum 100 m–2,2 km).
+  distanceMeters Int?
+  rain           Boolean @default(false) // pelanggan tetap minta jalan saat hujan
+  // Aturan Food Delivery (hanya MAKANAN):
+  portions       Int?    // jumlah porsi/bungkus (1–2 normal)
+  places         Int?    // jumlah tempat pembelian
+  waitingMinutes Int?    // lama driver menunggu (diisi saat complete)
+  // Rincian tarif resmi saat pesanan dibuat (JSON FareBreakdown) —
+  // ditampilkan apa adanya di detail pesanan.
+  fareBreakdown  Json?
+  // Total tarif akhir (Rp) — diperbarui bila waktu tunggu ditambahkan.
+  fare           Int     // total tarif (Rp)
+  paymentMethod  String  @default("TUNAI")
   status         String    @default("MENCARI") // MENCARI | DIKONFIRMASI | BERJALAN | SELESAI | DIBATALKAN
   rating         Int?
   review         String?

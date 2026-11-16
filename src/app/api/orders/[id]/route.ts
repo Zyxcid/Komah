@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
+import { calcOfficialFare } from "@/lib/fare";
 import { msgOrderAccepted, msgOrderCancelled, msgOrderCompleted, msgOrderStarted, sendPushToUser } from "@/lib/push";
 
 const orderInclude = {
@@ -157,17 +158,42 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       return NextResponse.json({ order: updated, message: "Perjalanan dimulai." });
     }
     if (order.status !== "BERJALAN") return NextResponse.json({ error: "Status tidak sesuai." }, { status: 400 });
+
+    // Selesaikan pesanan — driver melaporkan lama waktu tunggu di tempat
+    // pembelian (aturan Food Delivery, hanya MAKANAN). Tarif dihitung ulang
+    // dari data tersimpan + tarif tunggu; pelanggan melihat rincian lengkap.
+    let waitingMinutes: number | null = null;
+    if (order.type === "MAKANAN") {
+      const n = Math.round(Number(body.waitingMinutes));
+      waitingMinutes = Number.isFinite(n) && n >= 0 && n <= 180 ? n : 0;
+    }
+    const breakdown = calcOfficialFare({
+      distanceKm: (order.distanceMeters ?? 100) / 1000,
+      type: order.type as "OJEK" | "BARANG" | "MAKANAN",
+      rain: order.rain,
+      portions: order.portions ?? undefined,
+      places: order.places ?? undefined,
+      waitingMinutes: waitingMinutes ?? undefined,
+      orderTime: order.createdAt,
+    });
+    const finalFare = breakdown.total;
     const updated = await db.order.update({
       where: { id: order.id },
-      data: { status: "SELESAI", completedAt: new Date() },
+      data: {
+        status: "SELESAI",
+        completedAt: new Date(),
+        waitingMinutes,
+        fareBreakdown: breakdown as unknown as object,
+        fare: finalFare,
+      },
       include: orderInclude,
     });
     await db.user.update({
       where: { id: user.id },
-      data: { totalTrips: { increment: 1 }, totalEarnings: { increment: order.fare - 1000 } },
+      data: { totalTrips: { increment: 1 }, totalEarnings: { increment: finalFare - 1000 } },
     });
     if (order.user) {
-      await sendPushToUser(order.user.id, msgOrderCompleted({ code: order.code, fare: order.fare })).catch(() => {});
+      await sendPushToUser(order.user.id, msgOrderCompleted({ code: order.code, fare: finalFare })).catch(() => {});
     }
     return NextResponse.json({ order: updated, message: "Pesanan selesai. Kerja bagus!" });
   }

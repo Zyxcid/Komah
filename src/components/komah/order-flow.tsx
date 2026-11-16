@@ -6,6 +6,7 @@ import {
   Banknote,
   Bike,
   Check,
+  CloudRain,
   Loader2,
   Package,
   ReceiptText,
@@ -32,8 +33,8 @@ import {
 import { LocationPicker } from "./location-picker";
 import { RouteMap } from "./map-view";
 import { TypeBadge } from "./bits";
-import { calcFare } from "@/lib/fare";
-import type { LocationT, OrderT, OrderType } from "@/lib/types";
+import { calcOfficialFare, haversineKm, ROAD_FACTOR } from "@/lib/fare";
+import type { FareBreakdownT, LocationT, OrderT, OrderType } from "@/lib/types";
 
 const SERVICES: Array<{ type: OrderType; label: string; icon: React.ElementType }> = [
   { type: "OJEK", label: "Ojek", icon: Bike },
@@ -43,13 +44,50 @@ const SERVICES: Array<{ type: OrderType; label: string; icon: React.ElementType 
 
 const STAGE_LABEL = ["Rute", "Konfirmasi"] as const;
 
+/** Baris rincian tarif resmi (hanya yang nilainya > 0 yang tampil). */
+function FareRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-bold">{rupiah(value)}</span>
+    </div>
+  );
+}
+
+function FareSummary({ b, estimate }: { b: FareBreakdownT; estimate?: boolean }) {
+  const rows: Array<[string, number]> = [
+    [`Tarif jarak (${b.distanceKm.toString().replace(".", ",")} km)`, b.base],
+    ["Tambahan hujan", b.rain + b.foodRain],
+    ["Tambahan porsi", b.portions],
+    ["Tambahan tempat pembelian", b.places],
+    ["Tambahan jam malam", b.night],
+  ];
+  return (
+    <div className="space-y-1.5">
+      {rows
+        .filter(([, v]) => v > 0)
+        .map(([label, v]) => (
+          <FareRow key={label} label={label} value={v} />
+        ))}
+      <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+        <span className="font-extrabold">{estimate ? "Estimasi tarif" : "Total"}</span>
+        <span className="text-lg font-extrabold text-unp">{rupiah(b.total)}</span>
+      </div>
+      {estimate && (
+        <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+          Berdasarkan daftar harga resmi KOMAH. Waktu tunggu di tempat pembelian (makanan)
+          ditambahkan driver saat pesanan selesai.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
   const { toast } = useToast();
   const { addresses, refresh } = useAuth();
-  const { data: locData } = useApi<{ locations: LocationT[]; baseFare?: number }>("/api/locations");
+  const { data: locData } = useApi<{ locations: LocationT[] }>("/api/locations");
   const locations = locData?.locations || [];
-  // Tarif dasar dalam kampus — diatur admin (fallback Rp6.000 bila belum diatur).
-  const baseFare = locData?.baseFare ?? 6000;
 
   // Prefill "Pesan lagi" / "Ulangi" (dibaca sekali saat mount,
   // diterapkan langsung sebagai nilai awal state — tanpa effect).
@@ -68,19 +106,39 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
   const [destDetail, setDestDetail] = useState(prefill?.destDetail || "");
   const [itemNote, setItemNote] = useState(prefill?.itemNote || "");
   const [passengerNote, setPassengerNote] = useState(prefill?.passengerNote || "");
+  // Input tarif resmi: hujan (semua layanan), porsi & tempat pembelian (MAKANAN).
+  const [rain, setRain] = useState(false);
+  const [portions, setPortions] = useState("1");
+  const [places, setPlaces] = useState("1");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Bersihkan stash saat flow ditinggalkan (sudah dikonsumsi sebagai state awal).
   useEffect(() => clearPrefill, []);
 
-  const fare = useMemo(() => {
-    if (!pickup || !dest) return null;
-    const total = calcFare(pickup, dest, baseFare);
-    return { base: baseFare, distance: total - baseFare, total };
-  }, [pickup, dest, baseFare]);
+  // Estimasi jarak: garis lurus × faktor jalan. Angka final tetap dihitung
+  // server saat pesanan dibuat (memakai ukuran rute klien bila tersedia).
+  const distanceKm = useMemo(() => {
+    if (!pickup?.lat || !pickup?.lng || !dest?.lat || !dest?.lng) return null;
+    return haversineKm({ lat: pickup.lat, lng: pickup.lng }, { lat: dest.lat, lng: dest.lng }) * ROAD_FACTOR;
+  }, [pickup, dest]);
 
-  const ruteValid = !!pickup && !!dest && pickup.id !== dest.id && ((type === "BARANG" || type === "MAKANAN") ? itemNote.trim().length > 0 : true);
+  const fare = useMemo<FareBreakdownT | null>(() => {
+    if (!distanceKm) return null;
+    return calcOfficialFare({
+      distanceKm,
+      type,
+      rain,
+      portions: type === "MAKANAN" ? Math.max(1, Number(portions) || 1) : undefined,
+      places: type === "MAKANAN" ? Math.max(1, Number(places) || 1) : undefined,
+    });
+  }, [distanceKm, type, rain, portions, places]);
+
+  const ruteValid =
+    !!pickup &&
+    !!dest &&
+    pickup.id !== dest.id &&
+    ((type === "BARANG" || type === "MAKANAN") ? itemNote.trim().length > 0 : true);
 
   // Ganti layanan lewat pemilih ringkas di tahap rute — deskripsi barang/
   // makanan dikosongkan karena isinya spesifik per layanan.
@@ -107,6 +165,9 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
       destDetail,
       itemNote,
       passengerNote,
+      rain,
+      portions: type === "MAKANAN" ? Math.max(1, Number(portions) || 1) : undefined,
+      places: type === "MAKANAN" ? Math.max(1, Number(places) || 1) : undefined,
     });
     setBusy(false);
     if (!ok) {
@@ -272,23 +333,76 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
             </div>
           )}
 
-          {fare && (
-            <div className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-sm">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Tarif dasar</span>
-                <span className="font-bold">{rupiah(fare.base)}</span>
-              </div>
-              {fare.distance > 0 && (
-                <div className="mt-1.5 flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Biaya jarak (zona)</span>
-                  <span className="font-bold">{rupiah(fare.distance)}</span>
+          {/* Input tarif resmi — rincian aturan KOMAH */}
+          {type === "MAKANAN" && (
+            <div className="mt-5 rounded-2xl border-2 border-unp/25 bg-unp-soft/30 p-4">
+              <p className="text-sm font-extrabold text-unp-dark">Rincian pesanan makanan</p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="portions" className="text-xs font-bold">Jumlah porsi/bungkus</Label>
+                  <Input
+                    id="portions"
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={portions}
+                    onChange={(e) => setPortions(e.target.value)}
+                    className="mt-1.5 h-11 border-2 [appearance:textfield]"
+                  />
+                  <p className="mt-1 text-[10px] leading-snug text-muted-foreground">1–2 porsi tanpa tambahan.</p>
                 </div>
-              )}
-              <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-                <span className="font-extrabold">Estimasi tarif</span>
-                <span className="text-lg font-extrabold text-unp">{rupiah(fare.total)}</span>
+                <div>
+                  <Label htmlFor="places" className="text-xs font-bold">Jumlah tempat pembelian</Label>
+                  <Input
+                    id="places"
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={places}
+                    onChange={(e) => setPlaces(e.target.value)}
+                    className="mt-1.5 h-11 border-2 [appearance:textfield]"
+                  />
+                  <p className="mt-1 text-[10px] leading-snug text-muted-foreground">1 tempat tanpa tambahan.</p>
+                </div>
               </div>
             </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setRain(!rain)}
+            aria-pressed={rain}
+            className={cn(
+              "mt-3 flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-colors",
+              rain ? "border-unp bg-unp-soft/50" : "border-border bg-card hover:border-unp/40"
+            )}
+          >
+            <CloudRain size={20} className={rain ? "text-unp" : "text-muted-foreground"} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">Tetap jalan saat hujan</span>
+              <span className="block text-xs text-muted-foreground">
+                Berlaku tambahan biaya sesuai daftar harga resmi.
+              </span>
+            </span>
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold",
+                rain ? "bg-unp text-white" : "bg-muted text-muted-foreground"
+              )}
+            >
+              {rain ? "AKTIF" : "TIDAK"}
+            </span>
+          </button>
+
+          {fare && (
+            <div className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-sm">
+              <FareSummary b={fare} estimate />
+            </div>
+          )}
+          {!fare && pickup && dest && (
+            <p className="mt-5 rounded-2xl border border-dashed border-border bg-card px-4 py-3 text-center text-xs text-muted-foreground">
+              Estimasi tarif muncul setelah kedua lokasi memiliki koordinat peta.
+            </p>
           )}
 
           {/* Tahap pertama — keluar dari alur cukup lewat tombol kembali di header. */}
@@ -336,6 +450,16 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
                   <p className="mt-0.5 font-semibold">{itemNote}</p>
                 </div>
               )}
+              {type === "MAKANAN" && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {Math.max(1, Number(portions) || 1)} porsi • {Math.max(1, Number(places) || 1)} tempat pembelian
+                </p>
+              )}
+              {rain && (
+                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-unp-soft px-2.5 py-1 text-[11px] font-bold text-unp-dark">
+                  <CloudRain size={12} /> Tetap jalan saat hujan
+                </p>
+              )}
               {type === "OJEK" && passengerNote && (
                 <div className="mt-4 rounded-xl bg-muted px-3.5 py-3 text-sm">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Catatan</p>
@@ -348,21 +472,8 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
               <p className="flex items-center gap-2 text-sm font-extrabold">
                 <ReceiptText size={16} className="text-unp" /> Rincian tarif
               </p>
-              <div className="mt-3 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tarif dasar</span>
-                  <span className="font-bold">{rupiah(fare.base)}</span>
-                </div>
-                {fare.distance > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Biaya jarak (zona)</span>
-                    <span className="font-bold">{rupiah(fare.distance)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-border pt-2.5">
-                  <span className="font-extrabold">Total</span>
-                  <span className="text-lg font-extrabold text-unp">{rupiah(fare.total)}</span>
-                </div>
+              <div className="mt-3">
+                <FareSummary b={fare} estimate />
               </div>
               <div className="mt-4 flex items-center gap-2.5 rounded-xl bg-unp-soft px-3.5 py-3">
                 <Banknote size={18} className="text-unp" />

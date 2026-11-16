@@ -284,6 +284,13 @@ export function OrderDetailView({ code }: { code: string }) {
               <p className="mt-0.5 font-semibold">{order.itemNote}</p>
             </div>
           )}
+          {order.type === "MAKANAN" && (
+            <p className="text-xs text-muted-foreground">
+              {order.portions ?? 1} porsi • {order.places ?? 1} tempat pembelian
+              {order.rain ? " • tetap jalan saat hujan" : ""}
+              {order.waitingMinutes != null && order.waitingMinutes > 0 ? ` • menunggu ${order.waitingMinutes} menit` : ""}
+            </p>
+          )}
           {order.passengerNote && (
             <div className="rounded-xl bg-muted px-3.5 py-3">
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Catatan penumpang</p>
@@ -294,10 +301,57 @@ export function OrderDetailView({ code }: { code: string }) {
             <span className="text-muted-foreground">Metode pembayaran</span>
             <span className="font-bold">Tunai</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Tarif</span>
-            <span className="text-lg font-extrabold text-unp">{rupiah(order.fare)}</span>
-          </div>
+          {/* Rincian tarif resmi (jarak + surcharge) bila tersedia;
+              pesanan lama tanpa rincian tetap menampilkan total saja. */}
+          {order.fareBreakdown ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  Tarif jarak ({order.fareBreakdown.distanceKm.toString().replace(".", ",")} km)
+                </span>
+                <span className="font-bold">{rupiah(order.fareBreakdown.base)}</span>
+              </div>
+              {order.fareBreakdown.rain + order.fareBreakdown.foodRain > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Tambahan hujan</span>
+                  <span className="font-bold">{rupiah(order.fareBreakdown.rain + order.fareBreakdown.foodRain)}</span>
+                </div>
+              )}
+              {order.fareBreakdown.portions > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Tambahan porsi</span>
+                  <span className="font-bold">{rupiah(order.fareBreakdown.portions)}</span>
+                </div>
+              )}
+              {order.fareBreakdown.places > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Tambahan tempat pembelian</span>
+                  <span className="font-bold">{rupiah(order.fareBreakdown.places)}</span>
+                </div>
+              )}
+              {order.fareBreakdown.waiting > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Tambahan waktu tunggu</span>
+                  <span className="font-bold">{rupiah(order.fareBreakdown.waiting)}</span>
+                </div>
+              )}
+              {order.fareBreakdown.night > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Tambahan jam malam</span>
+                  <span className="font-bold">{rupiah(order.fareBreakdown.night)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between border-t border-border pt-2.5">
+                <span className="font-extrabold">Total</span>
+                <span className="text-lg font-extrabold text-unp">{rupiah(order.fare)}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Tarif</span>
+              <span className="text-lg font-extrabold text-unp">{rupiah(order.fare)}</span>
+            </div>
+          )}
         </div>
       </div>
 

@@ -9,14 +9,15 @@
 // aksi utama LANGSUNG DI ATAS PETA (selalu terlihat tanpa scroll), kartu penumpang
 // + tombol chat WhatsApp. Tanpa animasi denyut apa pun — tampilan tenang saat berkendara.
 
-import { useMemo } from "react";
-import { Bike, Check, Loader2, MapPin, Navigation, MessageCircle, Route as RouteIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Bike, Check, Clock, Loader2, MapPin, Navigation, MessageCircle, Route as RouteIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fmtDur, fmtKm, pinMoved, rupiah, waLink } from "./lib";
 import { RouteMap } from "./map-view";
 import { PointRow, TypeIcon, UserAvatar } from "./bits";
 import { useOsmrRoute } from "./use-route";
+import { WAITING_CHOICES, waitingSurcharge } from "@/lib/fare";
 import type { LatLng } from "./map-core";
 import type { OrderT } from "@/lib/types";
 
@@ -29,11 +30,14 @@ export function DriverActiveOrder({
   busy,
 }: {
   order: OrderT;
-  onAct: (orderId: string, action: string) => void;
+  onAct: (orderId: string, action: string, extra?: Record<string, unknown>) => void;
   busy: string | null;
 }) {
   const isPicking = order.status === "DIKONFIRMASI";
   const busyThis = busy === order.id + (isPicking ? "start" : "complete");
+  // Waktu tunggu (aturan Food Delivery) — dipilih driver sebelum menyelesaikan
+  // pesanan makanan; server menghitung ulang total tarifnya.
+  const [waiting, setWaiting] = useState(0);
 
   const pickupPos = useMemo<LatLng | null>(() => {
     if (order.pickupLat != null && order.pickupLng != null) return { lat: order.pickupLat, lng: order.pickupLng };
@@ -116,14 +120,44 @@ export function DriverActiveOrder({
           Penumpang Sudah Naik
         </Button>
       ) : (
-        <Button
-          onClick={() => onAct(order.id, "complete")}
-          disabled={busyThis}
-          className="h-14 w-full gap-2 bg-gold text-base font-extrabold text-unp-deep hover:bg-gold-dark"
-        >
-          {busyThis ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-          Selesaikan Pesanan (+{rupiah(order.fare - 1000)})
-        </Button>
+        <div className="space-y-3">
+          {order.type === "MAKANAN" && (
+            <div className="rounded-3xl border border-border bg-card p-4 shadow-sm">
+              <p className="flex items-center gap-1.5 text-sm font-extrabold">
+                <Clock size={15} className="text-unp" /> Waktu tunggu di tempat pembelian
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                Sesuai aturan resmi: ≥7 menit +Rp1.000, bertambah tiap tingkatan.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {WAITING_CHOICES.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setWaiting(m)}
+                    aria-pressed={waiting === m}
+                    className={cn(
+                      "rounded-xl border-2 px-3 py-2 text-xs font-bold transition-colors",
+                      waiting === m
+                        ? "border-unp bg-unp-soft text-unp-dark"
+                        : "border-border bg-card text-muted-foreground hover:border-unp/40"
+                    )}
+                  >
+                    {m === 0 ? "Tidak menunggu" : `${m} mnt${waitingSurcharge(m) ? ` (+${rupiah(waitingSurcharge(m))})` : ""}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <Button
+            onClick={() => onAct(order.id, "complete", order.type === "MAKANAN" ? { waitingMinutes: waiting } : undefined)}
+            disabled={busyThis}
+            className="h-14 w-full gap-2 bg-gold text-base font-extrabold text-unp-deep hover:bg-gold-dark"
+          >
+            {busyThis ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+            Selesaikan Pesanan (+{rupiah(order.fare - 1000 + (order.type === "MAKANAN" ? waitingSurcharge(waiting) : 0))})
+          </Button>
+        </div>
       )}
 
       {/* Peta rute + posisi driver sendiri */}
@@ -155,6 +189,12 @@ export function DriverActiveOrder({
         {order.itemNote && (
           <p className="rounded-xl bg-gold-soft/60 px-3.5 py-2.5 text-sm font-semibold text-gold-dark">
             {order.type === "MAKANAN" ? "Makanan" : "Barang"}: {order.itemNote}
+          </p>
+        )}
+        {order.type === "MAKANAN" && (
+          <p className="text-xs text-muted-foreground">
+            {order.portions ?? 1} porsi • {order.places ?? 1} tempat pembelian
+            {order.rain ? " • hujan" : ""}
           </p>
         )}
         {order.passengerNote && (

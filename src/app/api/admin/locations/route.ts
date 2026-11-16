@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
-import { getBaseFare } from "@/lib/settings";
 
-// Kelola lokasi (admin) — daftar, tambah titik baru dengan nama & tarif sendiri.
+// Kelola lokasi (admin) — daftar & tambah titik baru dengan nama + koordinat.
+// Tarif tidak lagi diatur per lokasi: harga dihitung otomatis dari jarak
+// tempuh rute sesuai daftar harga resmi (src/lib/fare.ts).
 const CATEGORIES = ["KAMPUS", "KOS", "PUBLIK"] as const;
 
 async function requireAdmin() {
@@ -14,11 +15,8 @@ async function requireAdmin() {
 
 export async function GET() {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Hanya admin." }, { status: 403 });
-  const [locations, baseFare] = await Promise.all([
-    db.location.findMany({ orderBy: [{ category: "asc" }, { name: "asc" }] }),
-    getBaseFare(),
-  ]);
-  return NextResponse.json({ locations, baseFare });
+  const locations = await db.location.findMany({ orderBy: [{ category: "asc" }, { name: "asc" }] });
+  return NextResponse.json({ locations });
 }
 
 export async function POST(req: NextRequest) {
@@ -27,20 +25,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const name = String(body.name || "").trim();
     const category = CATEGORIES.includes(body.category) ? body.category : "PUBLIK";
-    const fare = Math.round(Number(body.fare));
     const lat = body.lat === "" || body.lat == null ? null : Number(body.lat);
     const lng = body.lng === "" || body.lng == null ? null : Number(body.lng);
     const isPopular = !!body.isPopular;
 
     if (!name) return NextResponse.json({ error: "Nama lokasi wajib diisi." }, { status: 400 });
-    if (!Number.isFinite(fare) || fare < 0) return NextResponse.json({ error: "Tarif tidak valid." }, { status: 400 });
     const badCoords = (lat != null && (!Number.isFinite(lat) || Math.abs(lat) > 90)) || (lng != null && (!Number.isFinite(lng) || Math.abs(lng) > 180));
     if (badCoords) return NextResponse.json({ error: "Koordinat tidak valid." }, { status: 400 });
 
     const exists = await db.location.findFirst({ where: { name } });
     if (exists) return NextResponse.json({ error: "Lokasi dengan nama itu sudah ada." }, { status: 409 });
 
-    const created = await db.location.create({ data: { name, category, fare, isPopular, lat, lng } });
+    const created = await db.location.create({ data: { name, category, isPopular, lat, lng } });
     return NextResponse.json({ location: created, message: "Lokasi ditambahkan." });
   } catch (e) {
     console.error("admin locations POST error", e);

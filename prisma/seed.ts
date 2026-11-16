@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/auth";
+import { calcOfficialFare, haversineKm, ROAD_FACTOR } from "../src/lib/fare";
 
 const db = new PrismaClient();
 
@@ -13,36 +14,35 @@ async function main() {
   await db.location.deleteMany();
   await db.setting.deleteMany();
 
-  await db.setting.create({ data: { key: "baseFare", value: "6000" } });
-
   console.log("Menanam lokasi UNP...");
   // Koordinat approx di sekitar kampus UNP Air Tawar, Padang (untuk demo peta — bisa disesuaikan).
+  // Tarif tidak ditanam per lokasi: dihitung otomatis dari jarak rute (daftar harga resmi).
   const locationsData = [
-    // Dalam kampus (tarif dasar Rp6.000)
-    { name: "Gerbang Utama UNP", category: "KAMPUS", fare: 6000, isPopular: true, lat: -0.9042, lng: 100.3462 },
-    { name: "Rektorat UNP", category: "KAMPUS", fare: 6000, isPopular: false, lat: -0.9022, lng: 100.3495 },
-    { name: "Fakultas Teknik (FT)", category: "KAMPUS", fare: 6000, isPopular: true, lat: -0.8989, lng: 100.3521 },
-    { name: "Fakultas Ekonomi (FE)", category: "KAMPUS", fare: 6000, isPopular: true, lat: -0.9011, lng: 100.3512 },
-    { name: "FMIPA", category: "KAMPUS", fare: 6000, isPopular: false, lat: -0.9002, lng: 100.3502 },
-    { name: "FIP", category: "KAMPUS", fare: 6000, isPopular: false, lat: -0.8993, lng: 100.3487 },
-    { name: "FIS (Ilmu Sosial)", category: "KAMPUS", fare: 6000, isPopular: false, lat: -0.9028, lng: 100.3503 },
-    { name: "FIK (Ilmu Keolahragaan)", category: "KAMPUS", fare: 6000, isPopular: false, lat: -0.9038, lng: 100.3518 },
-    { name: "GOR UNP", category: "KAMPUS", fare: 6000, isPopular: false, lat: -0.8981, lng: 100.3535 },
-    { name: "Masjid UNP", category: "KAMPUS", fare: 6000, isPopular: false, lat: -0.9015, lng: 100.3498 },
-    { name: "Perpustakaan Pusat", category: "KAMPUS", fare: 6000, isPopular: false, lat: -0.9008, lng: 100.3505 },
-    { name: "Kantin Pusat UNP", category: "KAMPUS", fare: 6000, isPopular: false, lat: -0.8998, lng: 100.3515 },
+    // Dalam kampus
+    { name: "Gerbang Utama UNP", category: "KAMPUS", isPopular: true, lat: -0.9042, lng: 100.3462 },
+    { name: "Rektorat UNP", category: "KAMPUS", isPopular: false, lat: -0.9022, lng: 100.3495 },
+    { name: "Fakultas Teknik (FT)", category: "KAMPUS", isPopular: true, lat: -0.8989, lng: 100.3521 },
+    { name: "Fakultas Ekonomi (FE)", category: "KAMPUS", isPopular: true, lat: -0.9011, lng: 100.3512 },
+    { name: "FMIPA", category: "KAMPUS", isPopular: false, lat: -0.9002, lng: 100.3502 },
+    { name: "FIP", category: "KAMPUS", isPopular: false, lat: -0.8993, lng: 100.3487 },
+    { name: "FIS (Ilmu Sosial)", category: "KAMPUS", isPopular: false, lat: -0.9028, lng: 100.3503 },
+    { name: "FIK (Ilmu Keolahragaan)", category: "KAMPUS", isPopular: false, lat: -0.9038, lng: 100.3518 },
+    { name: "GOR UNP", category: "KAMPUS", isPopular: false, lat: -0.8981, lng: 100.3535 },
+    { name: "Masjid UNP", category: "KAMPUS", isPopular: false, lat: -0.9015, lng: 100.3498 },
+    { name: "Perpustakaan Pusat", category: "KAMPUS", isPopular: false, lat: -0.9008, lng: 100.3505 },
+    { name: "Kantin Pusat UNP", category: "KAMPUS", isPopular: false, lat: -0.8998, lng: 100.3515 },
     // Kos & tempat tinggal mahasiswa
-    { name: "Jl. Parkit (Area Kos)", category: "KOS", fare: 6000, isPopular: true, lat: -0.8963, lng: 100.3541 },
-    { name: "Jl. Beringin (Area Kos)", category: "KOS", fare: 7000, isPopular: false, lat: -0.9055, lng: 100.3522 },
-    { name: "Sungai Sapih", category: "KOS", fare: 8000, isPopular: false, lat: -0.9090, lng: 100.3561 },
-    { name: "Kurao", category: "KOS", fare: 9000, isPopular: true, lat: -0.8912, lng: 100.3533 },
-    { name: "Simpang Haru", category: "KOS", fare: 10000, isPopular: false, lat: -0.9142, lng: 100.3623 },
-    { name: "Balai Gadang", category: "KOS", fare: 12000, isPopular: false, lat: -0.8859, lng: 100.3365 },
+    { name: "Jl. Parkit (Area Kos)", category: "KOS", isPopular: true, lat: -0.8963, lng: 100.3541 },
+    { name: "Jl. Beringin (Area Kos)", category: "KOS", isPopular: false, lat: -0.9055, lng: 100.3522 },
+    { name: "Sungai Sapih", category: "KOS", isPopular: false, lat: -0.9090, lng: 100.3561 },
+    { name: "Kurao", category: "KOS", isPopular: true, lat: -0.8912, lng: 100.3533 },
+    { name: "Simpang Haru", category: "KOS", isPopular: false, lat: -0.9142, lng: 100.3623 },
+    { name: "Balai Gadang", category: "KOS", isPopular: false, lat: -0.8859, lng: 100.3365 },
     // Titik publik sekitar kampus
-    { name: "Pasar Ambacang", category: "PUBLIK", fare: 10000, isPopular: false, lat: -0.9185, lng: 100.3544 },
-    { name: "Pertokoan Jl. Prof. Hamka", category: "PUBLIK", fare: 8000, isPopular: false, lat: -0.9031, lng: 100.3438 },
+    { name: "Pasar Ambacang", category: "PUBLIK", isPopular: false, lat: -0.9185, lng: 100.3544 },
+    { name: "Pertokoan Jl. Prof. Hamka", category: "PUBLIK", isPopular: false, lat: -0.9031, lng: 100.3438 },
   ];
-  const locations: Record<string, { id: string; name: string; category: string; fare: number; lat: number | null; lng: number | null }> = {};
+  const locations: Record<string, { id: string; name: string; category: string; lat: number | null; lng: number | null }> = {};
   for (const l of locationsData) {
     const created = await db.location.create({ data: l });
     locations[l.name] = created;
@@ -170,13 +170,21 @@ async function main() {
   const H = 3600_000;
   const D = 24 * H;
 
+  // Tarif demo dihitung dengan skema resmi (jarak garis lurus × faktor jalan).
+  function demoFare(from: { lat: number | null; lng: number | null }, to: { lat: number | null; lng: number | null }, type: "OJEK" | "BARANG" | "MAKANAN", at: number, waitingMinutes = 0) {
+    const km = from.lat != null && to.lat != null
+      ? haversineKm({ lat: from.lat, lng: from.lng! }, { lat: to.lat, lng: to.lng! }) * ROAD_FACTOR
+      : 0.1;
+    return calcOfficialFare({ distanceKm: km, type, waitingMinutes, orderTime: new Date(at) });
+  }
+
   const ordersData = [
     {
       code: "KMH-1001",
       user: rani, driver: drivers["Ahmad Fauzan"], type: "OJEK",
       from: "Jl. Parkit (Area Kos)", to: "Fakultas Teknik (FT)",
       fd: "Jl. Parkit 4, kos hijau", td: "Ruang RSG FT",
-      fare: 6000, status: "SELESAI", rating: 5, review: "Cepat dan ramah!",
+      status: "SELESAI", rating: 5, review: "Cepat dan ramah!",
       at: now - 3 * D, doneAt: now - 3 * D + 0.2 * H,
     },
     {
@@ -185,7 +193,7 @@ async function main() {
       from: "Fakultas Teknik (FT)", to: "Sungai Sapih",
       fd: "Parkiran FT", td: "Kos nasi goreng warna kuning",
       item: "Laptop & charger dalam tas", note: "Titip ke ibu kos ya bang",
-      fare: 8000, status: "SELESAI", rating: 5, review: "Barang aman sampai",
+      status: "SELESAI", rating: 5, review: "Barang aman sampai",
       at: now - 2 * D, doneAt: now - 2 * D + 0.3 * H,
     },
     {
@@ -194,7 +202,8 @@ async function main() {
       from: "Kantin Pusat UNP", to: "FMIPA",
       fd: "Warung Mak Endang", td: "Lobi FMIPA",
       item: "Nasi rendang + es teh (sudah dibayar)", note: "Taro di meja security",
-      fare: 6000, status: "SELESAI", rating: 5, review: null,
+      portions: 2, places: 1, waiting: 8,
+      status: "SELESAI", rating: 5, review: null,
       at: now - 1 * D - 2 * H, doneAt: now - 1 * D - 1.6 * H,
     },
     {
@@ -202,7 +211,7 @@ async function main() {
       user: rani, driver: drivers["Bayu Setiawan"], type: "OJEK",
       from: "Fakultas Ekonomi (FE)", to: "Jl. Parkit (Area Kos)",
       fd: "Gerbang FE", td: "Jl. Parkit 4",
-      fare: 6000, status: "SELESAI", rating: 4, review: "Sedikit telat, tapi oke",
+      status: "SELESAI", rating: 4, review: "Sedikit telat, tapi oke",
       at: now - 5 * H, doneAt: now - 4.6 * H,
     },
     {
@@ -210,7 +219,7 @@ async function main() {
       user: indra, driver: drivers["Ahmad Fauzan"], type: "OJEK",
       from: "Kurao", to: "Gerbang Utama UNP",
       fd: "Perempatan Kurao", td: "",
-      fare: 9000, status: "SELESAI", rating: 5, review: null,
+      status: "SELESAI", rating: 5, review: null,
       at: now - 2 * H, doneAt: now - 1.7 * H,
     },
   ];
@@ -218,6 +227,8 @@ async function main() {
   for (const o of ordersData) {
     const from = locations[o.from];
     const to = locations[o.to];
+    const type = o.type as "OJEK" | "BARANG" | "MAKANAN";
+    const b = demoFare(from, to, type, o.at, o.waiting ?? 0);
     await db.order.create({
       data: {
         code: o.code,
@@ -234,7 +245,13 @@ async function main() {
         destDetail: o.td,
         itemNote: o.item ?? null,
         passengerNote: o.note ?? null,
-        fare: o.fare,
+        rain: false,
+        portions: type === "MAKANAN" ? (o.portions ?? 1) : null,
+        places: type === "MAKANAN" ? (o.places ?? 1) : null,
+        waitingMinutes: type === "MAKANAN" ? (o.waiting ?? 0) : null,
+        distanceMeters: Math.round(b.distanceKm * 1000),
+        fareBreakdown: b as unknown as object,
+        fare: b.total,
         status: o.status,
         rating: o.rating,
         review: o.review,
@@ -244,6 +261,7 @@ async function main() {
         completedAt: new Date(o.doneAt),
       },
     });
+    console.log(`  ${o.code}: ${o.from} → ${o.to} • ${b.distanceKm.toFixed(1)} km • Rp${b.total.toLocaleString("id-ID")}`);
   }
 
   console.log("Seed selesai!");

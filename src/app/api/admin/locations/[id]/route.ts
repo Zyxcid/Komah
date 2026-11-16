@@ -14,7 +14,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   try {
     const { id } = await ctx.params;
     const body = await req.json();
-    const data: { name?: string; category?: string; fare?: number; isPopular?: boolean; lat?: number | null; lng?: number | null } = {};
+    const data: { name?: string; category?: string; isPopular?: boolean; lat?: number | null; lng?: number | null } = {};
 
     if (body.name !== undefined) {
       const name = String(body.name).trim();
@@ -26,11 +26,6 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         return NextResponse.json({ error: "Kategori tidak valid." }, { status: 400 });
       }
       data.category = body.category;
-    }
-    if (body.fare !== undefined) {
-      const fare = Math.round(Number(body.fare));
-      if (!Number.isFinite(fare) || fare < 0) return NextResponse.json({ error: "Tarif tidak valid." }, { status: 400 });
-      data.fare = fare;
     }
     if (body.isPopular !== undefined) data.isPopular = !!body.isPopular;
     if (body.lat !== undefined) data.lat = body.lat === null || body.lat === "" ? null : Number(body.lat);

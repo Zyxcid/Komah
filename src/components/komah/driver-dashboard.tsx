@@ -6,9 +6,11 @@ import {
   BadgeCheck,
   Bell,
   Bike,
+  ChevronDown,
   Inbox,
   Loader2,
   MapPin,
+  ShieldAlert,
   Star,
   TrendingUp,
   Wallet,
@@ -267,9 +269,9 @@ export function DriverDashboardView() {
     });
   }
 
-  async function act(orderId: string, action: string) {
+  async function act(orderId: string, action: string, extra?: Record<string, unknown>) {
     setBusyId(orderId + action);
-    const { ok, data: res } = await apiCall(`/api/orders/${orderId}`, "PATCH", { action });
+    const { ok, data: res } = await apiCall(`/api/orders/${orderId}`, "PATCH", { action, ...extra });
     setBusyId(null);
     if (!ok) {
       toast({ title: "Gagal", description: res.error, variant: "destructive" });
@@ -362,6 +364,35 @@ export function DriverDashboardView() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Pengingat aturan kerja resmi KOMAH (menggantikan pengumuman admin di grup) */}
+      {verified && (
+        <details className="group rounded-2xl border-2 border-unp/25 bg-unp-soft/30 p-4">
+          <summary className="flex cursor-pointer list-none items-center gap-3 font-extrabold text-unp-dark">
+            <ShieldAlert size={18} className="shrink-0 text-unp" />
+            Pengingat aturan driver KOMAH
+            <ChevronDown size={16} className="ml-auto shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+          </summary>
+          <ul className="mt-3 space-y-2 text-sm leading-relaxed text-unp-dark/90">
+            <li className="flex gap-2">
+              <span className="font-extrabold text-unp">1.</span>
+              Selalu berhati-hati dalam setiap pengambilan pesanan.
+            </li>
+            <li className="flex gap-2">
+              <span className="font-extrabold text-unp">2.</span>
+              Tolak langsung permintaan top up kuota/pulsa — sudah banyak penipuan dengan modus tersebut.
+            </li>
+            <li className="flex gap-2">
+              <span className="font-extrabold text-unp">3.</span>
+              Pesanan di atas Rp50.000: pelanggan wajib transfer dulu sebelum barang dibelikan.
+            </li>
+            <li className="flex gap-2">
+              <span className="font-extrabold text-unp">4.</span>
+              Selalu konfirmasi ke pelanggan bila ada tambahan harga atau lokasi belanja lebih jauh dari perkiraan.
+            </li>
+          </ul>
+        </details>
       )}
 
       {/* Statistik (hanya saat idle) */}
