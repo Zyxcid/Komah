@@ -18,6 +18,9 @@ export type Route =
   | { name: "admin-home" }
   | { name: "admin" }
   | { name: "admin-locations" }
+  | { name: "admin-drivers" }
+  | { name: "admin-orders" }
+  | { name: "admin-reports" }
   | { name: "profile" };
 
 export function parseHash(): { route: Route; query: URLSearchParams } {
@@ -56,6 +59,12 @@ export function parseHash(): { route: Route; query: URLSearchParams } {
       return { route: { name: "admin" }, query };
     case "kelola-lokasi":
       return { route: { name: "admin-locations" }, query };
+    case "kelola-driver":
+      return { route: { name: "admin-drivers" }, query };
+    case "monitor-pesanan":
+      return { route: { name: "admin-orders" }, query };
+    case "laporan":
+      return { route: { name: "admin-reports" }, query };
     case "profil":
       return { route: { name: "profile" }, query };
     default:

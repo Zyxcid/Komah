@@ -106,6 +106,9 @@ export interface MeT {
   vehicleType: string | null;
   ktmUrl: string | null;
   verifyStatus: "PENDING" | "VERIFIED" | "REJECTED" | null;
+  /** Akun driver diblokir admin (pelanggaran aturan). */
+  banned: boolean;
+  banReason: string | null;
   /** Mode pembuka aplikasi: PENUMPANG | DRIVER. */
   appMode: "PENUMPANG" | "DRIVER";
   /** true bila driver sedang mengantar (pesanan DIKONFIRMASI/BERJALAN) — kunci pindah mode. */
@@ -122,6 +125,61 @@ export interface AddressT {
   label: string;
   detail: string | null;
   location: LocationT;
+}
+
+/** Driver di direktori admin (kelola driver). */
+export interface DriverAdminT {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  nim: string | null;
+  avatarUrl: string | null;
+  vehiclePlate: string | null;
+  vehicleType: string | null;
+  verifyStatus: "PENDING" | "VERIFIED" | "REJECTED" | null;
+  isOnline: boolean;
+  rating: number;
+  ratingCount: number;
+  totalTrips: number;
+  totalEarnings: number;
+  banned: boolean;
+  banReason: string | null;
+  bannedAt: string | null;
+  createdAt: string;
+  /** Pesanan yang sedang diantar sekarang. */
+  activeOrders: number;
+}
+
+/** Pesanan di monitor admin. */
+export interface AdminOrderT {
+  id: string;
+  code: string;
+  type: OrderType;
+  status: OrderStatus;
+  fare: number;
+  createdAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  rating: number | null;
+  pickupLocation: { name: string };
+  destLocation: { name: string };
+  driver: { name: string } | null;
+  user: { name: string };
+}
+
+/** Laporan pelanggaran (penumpang ↔ driver) di panel Laporan admin. */
+export interface ReportT {
+  id: string;
+  reason: string;
+  note: string | null;
+  status: "OPEN" | "RESOLVED";
+  resolution: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  order: { id: string; code: string; type: OrderType };
+  reporter: { id: string; name: string };
+  target: { id: string; name: string; role: Role; banned: boolean };
 }
 
 export interface DriverDashboardT {

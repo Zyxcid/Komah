@@ -10,8 +10,19 @@
 // + tombol chat WhatsApp. Tanpa animasi denyut apa pun — tampilan tenang saat berkendara.
 
 import { useMemo, useState } from "react";
-import { Bike, Check, Clock, Loader2, MapPin, Navigation, MessageCircle, Route as RouteIcon } from "lucide-react";
+import { Bike, Check, Clock, Loader2, MapPin, Navigation, MessageCircle, Route as RouteIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { fmtDur, fmtKm, pinMoved, rupiah, waLink } from "./lib";
 import { RouteMap } from "./map-view";
@@ -111,14 +122,43 @@ export function DriverActiveOrder({
 
       {/* Aksi utama — DI ATAS peta agar selalu terlihat tanpa scroll */}
       {isPicking ? (
-        <Button
-          onClick={() => onAct(order.id, "start")}
-          disabled={busyThis}
-          className="h-14 w-full gap-2 bg-gold text-base font-extrabold hover:bg-gold-dark"
-        >
-          {busyThis ? <Loader2 size={18} className="animate-spin" /> : <Bike size={18} />}
-          Penumpang Sudah Naik
-        </Button>
+        <div className="space-y-2.5">
+          <Button
+            onClick={() => onAct(order.id, "start")}
+            disabled={busyThis}
+            className="h-14 w-full gap-2 bg-gold text-base font-extrabold hover:bg-gold-dark"
+          >
+            {busyThis ? <Loader2 size={18} className="animate-spin" /> : <Bike size={18} />}
+            Penumpang Sudah Naik
+          </Button>
+          {/* Darurat driver: tidak bisa menjemput → kembalikan pesanan ke
+              pencarian driver lain (penumpang diberi tahu, tidak hangus). */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={busy === order.id + "driver-cancel"}
+                className="h-11 w-full gap-2 border-2 border-red-200 font-bold text-red-600 hover:bg-red-50 hover:text-red-600"
+              >
+                <X size={15} /> Tidak Bisa Menjemput — Kembalikan
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Kembalikan pesanan {order.code}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Pesanan kembali dicarikan driver lain dan penumpang akan diberi tahu. Gunakan hanya bila benar-benar tidak bisa menjemput (kendaraan bermasalah, keadaan mendesak, dsb.).
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Lanjutkan Pesanan</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onAct(order.id, "driver-cancel")} className="bg-red-600 hover:bg-red-700">
+                  Ya, Kembalikan
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       ) : (
         <div className="space-y-3">
           {order.type === "MAKANAN" && (

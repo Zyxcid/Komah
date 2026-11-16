@@ -6,12 +6,15 @@ import {
   ArrowLeft,
   Bike,
   ClipboardList,
+  Flag,
   History,
   Home,
   LogOut,
   MapPin,
   MapPinned,
+  ReceiptText,
   User,
+  Users,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -30,6 +33,9 @@ import { DriverDashboardView } from "./driver-dashboard";
 import { AdminView } from "./admin-view";
 import { AdminHomeView } from "./admin-home";
 import { AdminLocationsView } from "./admin-locations";
+import { AdminDriversView } from "./admin-drivers";
+import { AdminOrdersView } from "./admin-orders";
+import { AdminReportsView } from "./admin-reports";
 import { ProfileView } from "./profile-view";
 
 const AUTH_ROUTES = new Set([
@@ -41,6 +47,9 @@ const AUTH_ROUTES = new Set([
   "admin-home",
   "admin",
   "admin-locations",
+  "admin-drivers",
+  "admin-orders",
+  "admin-reports",
   "profile",
 ]);
 
@@ -62,6 +71,12 @@ function routeTitle(route: Route): string {
       return "Verifikasi Driver";
     case "admin-locations":
       return "Kelola Lokasi";
+    case "admin-drivers":
+      return "Kelola Driver";
+    case "admin-orders":
+      return "Monitor Pesanan";
+    case "admin-reports":
+      return "Laporan";
     case "profile":
       return "Profil Saya";
     case "demo-accounts":
@@ -98,6 +113,12 @@ function ViewFor(route: Route, query: URLSearchParams) {
       return <AdminView />;
     case "admin-locations":
       return <AdminLocationsView />;
+    case "admin-drivers":
+      return <AdminDriversView />;
+    case "admin-orders":
+      return <AdminOrdersView />;
+    case "admin-reports":
+      return <AdminReportsView />;
     case "profile":
       return <ProfileView />;
     default:
@@ -122,7 +143,10 @@ function AppFrame({ route, children }: { route: Route; children: React.ReactNode
     role === "ADMIN"
       ? [
           { name: "admin-home", path: "/admin", label: "Beranda", icon: Home },
-          { name: "admin", path: "/verifikasi", label: "Verifikasi", icon: ClipboardList },
+          { name: "admin", path: "/verifikasi", label: "Acc", icon: ClipboardList },
+          { name: "admin-drivers", path: "/kelola-driver", label: "Driver", icon: Users },
+          { name: "admin-orders", path: "/monitor-pesanan", label: "Pesanan", icon: ReceiptText },
+          { name: "admin-reports", path: "/laporan", label: "Laporan", icon: Flag },
           { name: "admin-locations", path: "/kelola-lokasi", label: "Lokasi", icon: MapPinned },
           { name: "profile", path: "/profil", label: "Profil", icon: User },
         ]
@@ -244,7 +268,7 @@ function AppFrame({ route, children }: { route: Route; children: React.ReactNode
               aria-current={route.name === t.name ? "page" : undefined}
             >
               <t.icon size={21} strokeWidth={route.name === t.name ? 2.5 : 2} />
-              <span className="text-[10px] font-bold">{t.label}</span>
+              <span className="max-w-full truncate px-0.5 text-[10px] font-bold">{t.label}</span>
             </button>
           ))}
         </div>
@@ -273,7 +297,7 @@ export default function AppShell() {
         navigate(me.role === "ADMIN" ? "/admin" : "/beranda", true);
         return;
       }
-      if ((route.name === "admin-home" || route.name === "admin" || route.name === "admin-locations") && me.role !== "ADMIN") {
+      if ((route.name === "admin-home" || route.name === "admin" || route.name === "admin-locations" || route.name === "admin-drivers" || route.name === "admin-orders" || route.name === "admin-reports") && me.role !== "ADMIN") {
         navigate("/beranda", true);
       }
     }

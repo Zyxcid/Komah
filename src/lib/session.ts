@@ -23,6 +23,8 @@ export function toSafeUser(u: {
   vehiclePlate: string | null;
   vehicleType: string | null;
   verifyStatus: string | null;
+  banned?: boolean;
+  banReason?: string | null;
   appMode?: string;
   ktmUrl?: string | null;
   isOnline: boolean;
@@ -45,6 +47,8 @@ export function toSafeUser(u: {
     vehicleType: u.vehicleType,
     ktmUrl: u.ktmUrl ?? null,
     verifyStatus: u.verifyStatus,
+    banned: !!u.banned,
+    banReason: u.banReason ?? null,
     appMode: u.appMode === "DRIVER" ? "DRIVER" : "PENUMPANG",
     isOnline: u.isOnline,
     rating: u.rating,

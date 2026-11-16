@@ -8,6 +8,8 @@ const KTM_DEMO = "/uploads/ktm-demo.svg";
 
 async function main() {
   console.log("Menghapus data lama...");
+  // Hapus laporan dulu — menunya memakai FK ke Order & User.
+  await db.report.deleteMany();
   await db.order.deleteMany();
   await db.savedAddress.deleteMany();
   await db.user.deleteMany();

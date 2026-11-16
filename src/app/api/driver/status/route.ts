@@ -7,6 +7,13 @@ export async function POST(req: NextRequest) {
   if (!user || user.role !== "DRIVER") {
     return NextResponse.json({ error: "Hanya driver." }, { status: 403 });
   }
+  if (user.banned) {
+    // Driver terblokir selalu dipaksa offline — tak bisa menerima pesanan.
+    if (user.isOnline) {
+      await db.user.update({ where: { id: user.id }, data: { isOnline: false } });
+    }
+    return NextResponse.json({ error: "Akun driver-mu diblokir admin. Hubungi tim KOMAH." }, { status: 403 });
+  }
   if (user.verifyStatus !== "VERIFIED") {
     return NextResponse.json({ error: "Akun belum terverifikasi." }, { status: 403 });
   }

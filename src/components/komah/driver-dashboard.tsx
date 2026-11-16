@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
+  Ban,
   Bell,
   Bike,
   ChevronDown,
@@ -306,6 +307,22 @@ export function DriverDashboardView() {
   // ===== Idle: statistik, toggle online, pesanan masuk =====
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
+      {/* Peringatan akun diblokir admin (pelanggaran aturan) */}
+      {me?.banned && (
+        <div className="flex items-start gap-3.5 rounded-2xl border-2 border-red-300 bg-red-50 p-4">
+          <Ban size={20} className="mt-0.5 shrink-0 text-red-600" />
+          <div className="flex-1">
+            <p className="font-extrabold text-red-700">Akun driver diblokir</p>
+            <p className="mt-0.5 text-sm leading-relaxed text-red-700/80">
+              {me.banReason
+                ? `Alasan dari admin: “${me.banReason}”.`
+                : "Admin memblokir akun driver-mu."}{" "}
+              Kamu tidak bisa online atau menerima pesanan baru. Hubungi tim KOMAH untuk kejelasan.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Kepala + toggle online */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -324,7 +341,7 @@ export function DriverDashboardView() {
             </p>
             <p className="text-[11px] text-muted-foreground">{isOnline ? "Menerima pesanan" : "Tidak aktif"}</p>
           </div>
-          <Switch checked={isOnline} onCheckedChange={toggleOnline} disabled={!verified} className="data-[state=checked]:bg-gold" />
+          <Switch checked={isOnline} onCheckedChange={toggleOnline} disabled={!verified || !!me?.banned} className="data-[state=checked]:bg-gold" />
         </div>
       </div>
 

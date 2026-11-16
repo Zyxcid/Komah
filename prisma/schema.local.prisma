@@ -29,6 +29,11 @@ model User {
   ktmUrl         String?
   verifyStatus   String?  // PENDING | VERIFIED | REJECTED (driver only)
   isOnline       Boolean  @default(false)
+  // Pemblokiran oleh admin (pelanggaran aturan): login tetap boleh, tapi
+  // driver tidak bisa online / menerima pesanan baru.
+  banned         Boolean  @default(false)
+  banReason      String?
+  bannedAt       DateTime?
   rating         Float    @default(0)
   ratingCount    Int      @default(0)
   totalTrips     Int      @default(0)
@@ -41,6 +46,8 @@ model User {
   drives         Order[]  @relation("DriverOrders")
   addresses      SavedAddress[]
   pushSubs       PushSubscription[]
+  reportsMade    Report[] @relation("ReporterReports")
+  reportsAgainst Report[] @relation("TargetReports")
 }
 
 model Location {
@@ -122,6 +129,29 @@ model Order {
   startedAt      DateTime?
   completedAt    DateTime?
   cancelledAt    DateTime?
+  reports        Report[] @relation("OrderReports")
+}
+
+// Laporan pelanggaran dari pengguna — dua arah: penumpang → driver atau
+// driver → penumpang, terkait satu pesanan. Satu laporan per pesanan per
+// pelapor (unique); admin menindak lewat panel Laporan (blokir dsb.).
+model Report {
+  id         String    @id @default(cuid())
+  orderId    String
+  order      Order     @relation("OrderReports", fields: [orderId], references: [id])
+  reporterId String
+  reporter   User      @relation("ReporterReports", fields: [reporterId], references: [id])
+  targetId   String
+  target     User      @relation("TargetReports", fields: [targetId], references: [id])
+  reason     String    // kategori pelanggaran (pilihan tetap dari UI)
+  note       String?   // uraian tambahan pelapor (opsional)
+  status     String    @default("OPEN") // OPEN | RESOLVED
+  resolution String?   // catatan admin saat menutup laporan
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([orderId, reporterId])
+  @@index([status])
 }
 
 // Pengaturan aplikasi yang dapat diubah admin (mis. tarif dasar).

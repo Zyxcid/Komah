@@ -6,6 +6,7 @@ import {
   Bike,
   Check,
   ClipboardList,
+  Flag,
   Loader2,
   MapPin,
   MessageCircle,
@@ -38,7 +39,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { apiCall, dateId, rupiah, timeId, useApi, waLink } from "./lib";
+import { apiCall, dateId, rupiah, timeId, useApi, useAuth, waLink } from "./lib";
+import { REPORT_REASONS } from "@/lib/report-reasons";
 import { RouteMap } from "./map-view";
 import { useOsmrRoute } from "./use-route";
 import { RatingStars, StatusBadge, TypeBadge, UserAvatar } from "./bits";
@@ -53,12 +55,19 @@ const TIMELINE = [
 
 export function OrderDetailView({ code }: { code: string }) {
   const { toast } = useToast();
+  const { me } = useAuth();
   const { data, refetch } = useApi<{ order: OrderT }>(`/api/orders/${code}`, { interval: 4000 });
   const order = data?.order;
   const [busy, setBusy] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
   const [stars, setStars] = useState(0);
   const [review, setReview] = useState("");
+  // Laporan pelanggaran (penumpang → driver atau driver → penumpang).
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<string | null>(null);
+  const [reportNote, setReportNote] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reported, setReported] = useState(false);
 
   // Titik peta: prioritas koordinat pesanan (pin yang digeser), fallback lokasi.
   const pickupPos = useMemo(() => {
@@ -122,6 +131,26 @@ export function OrderDetailView({ code }: { code: string }) {
     refetch();
   }
 
+  async function submitReport() {
+    if (!order || !reportReason) return;
+    setReportBusy(true);
+    const { ok, data: res } = await apiCall<{ message: string }>("/api/reports", "POST", {
+      orderId: order.id,
+      reason: reportReason,
+      note: reportNote.trim() || undefined,
+    });
+    setReportBusy(false);
+    if (!ok) {
+      toast({ title: "Gagal mengirim laporan", description: res.error, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Laporan terkirim", description: res.message });
+    setReported(true);
+    setReportOpen(false);
+    setReportReason(null);
+    setReportNote("");
+  }
+
   if (!order) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -133,6 +162,11 @@ export function OrderDetailView({ code }: { code: string }) {
   const isMine = true; // API sudah memvalidasi akses
   const canCancel = isMine && ["MENCARI", "DIKONFIRMASI"].includes(order.status);
   const canRate = isMine && order.status === "SELESAI" && !order.rating;
+  // Laporan pelanggaran: perlu pihak lawan (driver melihat pesanan ini
+  // melaporkan penumpang; selain itu melaporkan driver bila sudah ada).
+  const isDriverSide = me?.role === "DRIVER" && order.driver?.id === me.id;
+  const counterpart = isDriverSide ? order.user : order.driver;
+  const canReport = order.status !== "MENCARI" && !!counterpart && !reported;
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 px-4 pb-10 pt-6 sm:px-6">
@@ -375,6 +409,15 @@ export function OrderDetailView({ code }: { code: string }) {
             <Star size={18} className="fill-unp-deep" /> Beri Rating Driver
           </Button>
         )}
+        {canReport && (
+          <Button
+            variant="outline"
+            onClick={() => setReportOpen(true)}
+            className="h-11 w-full gap-2 border-2 font-bold text-muted-foreground hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          >
+            <Flag size={15} /> Laporkan {isDriverSide ? "Penumpang" : "Driver"}
+          </Button>
+        )}
         {canCancel && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -434,6 +477,59 @@ export function OrderDetailView({ code }: { code: string }) {
             <Button onClick={submitRating} disabled={busy || stars < 1} className="w-full bg-gold font-extrabold hover:bg-gold-dark">
               {busy ? <Loader2 size={16} className="animate-spin" /> : <Star size={15} className="fill-unp-deep text-unp-deep" />}
               Kirim Rating
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Dialog laporan pelanggaran */}
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Flag size={17} className="text-red-600" /> Laporkan {isDriverSide ? "Penumpang" : "Driver"}
+            </DialogTitle>
+            <DialogDescription>
+              Terkait pesanan {order.code}. Laporan dikirim ke admin KOMAH untuk ditindak.{" "}
+              <a href="tel:112" className="font-bold text-red-600 underline">Keadaan darurat? Hubungi 112</a>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <p className="mb-2 text-sm font-bold">Apa yang terjadi?</p>
+              <div className="flex flex-wrap gap-2">
+                {REPORT_REASONS.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setReportReason(r)}
+                    aria-pressed={reportReason === r}
+                    className={cn(
+                      "rounded-full border-2 px-3 py-1.5 text-xs font-bold transition-colors",
+                      reportReason === r
+                        ? "border-red-400 bg-red-50 text-red-700"
+                        : "border-border bg-card text-muted-foreground hover:border-red-200"
+                    )}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Textarea
+              value={reportNote}
+              onChange={(e) => setReportNote(e.target.value)}
+              placeholder="Jelaskan singkat kejadiannya (opsional, maks. 500 karakter)…"
+              rows={3}
+              maxLength={500}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReportOpen(false)} className="border-2 font-bold">
+              Batal
+            </Button>
+            <Button onClick={submitReport} disabled={reportBusy || !reportReason} className="gap-2 bg-red-600 font-extrabold hover:bg-red-700">
+              {reportBusy ? <Loader2 size={15} className="animate-spin" /> : <Flag size={15} />}
+              Kirim Laporan
             </Button>
           </DialogFooter>
         </DialogContent>

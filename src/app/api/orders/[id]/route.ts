@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { calcOfficialFare } from "@/lib/fare";
-import { msgOrderAccepted, msgOrderCancelled, msgOrderCompleted, msgOrderStarted, sendPushToUser } from "@/lib/push";
+import { expireStaleMencariOrders } from "@/lib/order-expiry";
+import {
+  msgDriverCancelled,
+  msgOrderAccepted,
+  msgOrderCancelled,
+  msgOrderCompleted,
+  msgOrderStarted,
+  pushNewOrderToDrivers,
+  sendPushToUser,
+} from "@/lib/push";
 
 const orderInclude = {
   pickupLocation: true,
@@ -22,6 +31,9 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Tidak terautentikasi." }, { status: 401 });
 
+  // Bersihkan pesanan usang (MENCARI > 30 menit) sebelum dibaca.
+  await expireStaleMencariOrders().catch(() => {});
+
   const { id } = await ctx.params;
   const order = await findOrder(id);
   if (!order) return NextResponse.json({ error: "Pesanan tidak ditemukan." }, { status: 404 });
@@ -36,6 +48,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Tidak terautentikasi." }, { status: 401 });
 
+  // Bersihkan pesanan usang dulu — accept pesanan kedaluwarsa harus gagal.
+  await expireStaleMencariOrders().catch(() => {});
+
   const { id } = await ctx.params;
   const order = await findOrder(id);
   if (!order) return NextResponse.json({ error: "Pesanan tidak ditemukan." }, { status: 404 });
@@ -44,8 +59,47 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   const action = body.action as string;
 
   // ===== Aksi pengguna =====
+  if (action === "driver-cancel") {
+    // Driver membatalkan pesanan yang sudah dia terima (sebelum berjalan):
+    // pesanan kembali mencari driver lain — penumpang tidak kehilangan
+    // pesanannya, dan pesanan di-broadcast ulang ke driver online.
+    if (user.role !== "DRIVER") return NextResponse.json({ error: "Hanya driver." }, { status: 403 });
+    if (order.driverId !== user.id) return NextResponse.json({ error: "Tidak berhak." }, { status: 403 });
+    if (order.status !== "DIKONFIRMASI") {
+      return NextResponse.json({ error: "Pesanan yang sudah berjalan tidak dapat dibatalkan driver." }, { status: 400 });
+    }
+    const updated = await db.order.update({
+      where: { id: order.id },
+      data: {
+        status: "MENCARI",
+        driverId: null,
+        acceptedAt: null,
+        startedAt: null,
+        driverLat: null,
+        driverLng: null,
+        driverPosAt: null,
+      },
+      include: orderInclude,
+    });
+    await sendPushToUser(order.userId, msgDriverCancelled({ code: order.code })).catch(() => {});
+    await pushNewOrderToDrivers({
+      code: order.code,
+      type: order.type,
+      pickupName: order.pickupLocation.name,
+      destName: order.destLocation.name,
+      fare: order.fare,
+    }).catch(() => {});
+    return NextResponse.json({
+      order: updated,
+      message: "Pesanan dikembalikan ke daftar pencarian. Penumpang sudah diberi tahu.",
+    });
+  }
+
   if (action === "cancel") {
-    if (order.userId !== user.id) return NextResponse.json({ error: "Tidak berhak." }, { status: 403 });
+    // Penumpang pemilik pesanan, atau admin (intervensi pesanan bermasalah
+    // — mis. nyangkut tanpa driver). Admin membatalkan → kabari kedua pihak.
+    const adminCancel = user.role === "ADMIN" && order.userId !== user.id;
+    if (order.userId !== user.id && !adminCancel) return NextResponse.json({ error: "Tidak berhak." }, { status: 403 });
     if (!["MENCARI", "DIKONFIRMASI"].includes(order.status)) {
       return NextResponse.json({ error: "Pesanan yang sedang berjalan tidak dapat dibatalkan." }, { status: 400 });
     }
@@ -57,6 +111,10 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     // Beri tahu driver yang sudah menerima (jika ada) via push.
     if (order.driverId) {
       await sendPushToUser(order.driverId, msgOrderCancelled({ code: order.code })).catch(() => {});
+    }
+    // Pembatalan oleh admin: penumpang juga perlu tahu pesanannya dibatalkan.
+    if (adminCancel) {
+      await sendPushToUser(order.userId, msgOrderCancelled({ code: order.code })).catch(() => {});
     }
     return NextResponse.json({ order: updated, message: "Pesanan dibatalkan." });
   }
@@ -109,6 +167,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
   if (action === "accept") {
     if (user.role !== "DRIVER") return NextResponse.json({ error: "Hanya driver." }, { status: 403 });
+    if (user.banned) return NextResponse.json({ error: "Akun driver-mu diblokir admin." }, { status: 403 });
     if (user.verifyStatus !== "VERIFIED") return NextResponse.json({ error: "Akun driver belum terverifikasi." }, { status: 403 });
     if (!user.isOnline) return NextResponse.json({ error: "Aktifkan mode online dulu." }, { status: 400 });
 

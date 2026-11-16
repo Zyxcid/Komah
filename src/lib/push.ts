@@ -71,11 +71,11 @@ export async function pushNewOrderToDrivers(p: PushOrderPayload): Promise<void> 
       endpoint: true,
       p256dh: true,
       auth: true,
-      user: { select: { role: true, isOnline: true, verifyStatus: true } },
+      user: { select: { role: true, isOnline: true, verifyStatus: true, banned: true } },
     },
   });
   const targets = subs.filter(
-    (s) => s.user.role === "DRIVER" && s.user.isOnline && s.user.verifyStatus === "VERIFIED"
+    (s) => s.user.role === "DRIVER" && s.user.isOnline && s.user.verifyStatus === "VERIFIED" && !s.user.banned
   );
   await deliver(targets, {
     title: `Pesanan baru ${p.code}`,
@@ -91,6 +91,15 @@ export async function pushNewOrderToDrivers(p: PushOrderPayload): Promise<void> 
 export async function sendPushToUser(userId: string, msg: PushMessage): Promise<void> {
   const subs = await db.pushSubscription.findMany({
     where: { userId },
+    select: { id: true, endpoint: true, p256dh: true, auth: true },
+  });
+  await deliver(subs, msg);
+}
+
+// Kirim push ke semua perangkat semua admin (laporan pelanggaran baru).
+export async function sendPushToAdmins(msg: PushMessage): Promise<void> {
+  const subs = await db.pushSubscription.findMany({
+    where: { user: { role: "ADMIN" } },
     select: { id: true, endpoint: true, p256dh: true, auth: true },
   });
   await deliver(subs, msg);
@@ -169,4 +178,54 @@ export function msgVerificationResult(d: { name: string; approved: boolean }): P
         tag: "komah-verifikasi",
         url: "/#/mode-driver",
       };
+}
+
+/** Ke driver: akun diblokir admin karena melanggar aturan. */
+export function msgDriverBanned(d: { name: string; reason: string }): PushMessage {
+  return {
+    title: "Akun driver diblokir",
+    body: `${d.name}, akun driver-mu diblokir admin. Alasan: ${d.reason}. Hubungi tim KOMAH untuk kejelasan.`,
+    tag: "komah-blokir",
+    url: "/#/mode-driver",
+  };
+}
+
+/** Ke driver: blokir dibuka, akun kembali aktif. */
+export function msgDriverUnbanned(d: { name: string }): PushMessage {
+  return {
+    title: "Blokir dibuka",
+    body: `${d.name}, akun driver-mu sudah aktif kembali. Nyalakan mode Online untuk mulai menerima pesanan.`,
+    tag: "komah-blokir",
+    url: "/#/mode-driver",
+  };
+}
+
+/** Ke admin: ada laporan pelanggaran baru dari pengguna. */
+export function msgNewReport(r: { reporterName: string; targetName: string; reason: string; code: string }): PushMessage {
+  return {
+    title: "Laporan pelanggaran baru",
+    body: `${r.reporterName} melaporkan ${r.targetName} (${r.reason}) terkait pesanan ${r.code}.`,
+    tag: "komah-laporan",
+    url: "/#/laporan",
+  };
+}
+
+/** Ke penumpang: pesanan kedaluwarsa karena tidak ada driver > 30 menit. */
+export function msgOrderExpired(o: { code: string }): PushMessage {
+  return {
+    title: "Pesanan kedaluwarsa",
+    body: `Pesanan ${o.code} dibatalkan otomatis — tidak ada driver dalam 30 menit. Silakan pesan ulang bila masih diperlukan.`,
+    tag: `komah-${o.code}`,
+    url: "/#/beranda",
+  };
+}
+
+/** Ke penumpang: driver membatalkan pesanan, pesanan kembali mencari driver. */
+export function msgDriverCancelled(o: { code: string }): PushMessage {
+  return {
+    title: "Driver membatalkan pesanan",
+    body: `Driver membatalkan pesanan ${o.code}. Kami mencarikan driver lain — atau batalkan sendiri bila tidak jadi.`,
+    tag: `komah-${o.code}`,
+    url: "/#/beranda",
+  };
 }

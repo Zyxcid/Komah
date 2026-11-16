@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { calcOfficialFare, resolveDistanceMeters } from "@/lib/fare";
 import { pushNewOrderToDrivers } from "@/lib/push";
+import { expireStaleMencariOrders } from "@/lib/order-expiry";
 import crypto from "crypto";
 
 const ACTIVE = ["MENCARI", "DIKONFIRMASI", "BERJALAN"] as const;
@@ -29,6 +30,9 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const scope = searchParams.get("scope");
+
+  // Bersihkan pesanan usang (MENCARI > 30 menit) sebelum mengambil daftar.
+  await expireStaleMencariOrders().catch(() => {});
 
   if (scope === "driver") {
     if (user.role !== "DRIVER") return NextResponse.json({ error: "Hanya driver." }, { status: 403 });

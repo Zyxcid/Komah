@@ -93,6 +93,15 @@ npm run db:reset    # Hapus semua tabel + tanam ulang data demo (reset bersih)
 
 **Untuk admin (role ADMIN)**
 - Panel verifikasi calon driver: pratinjau KTM, setujui atau tolak
+- **Kelola Driver**: direktori seluruh driver — rating & jumlah penilaian, total perjalanan & pendapatan, status online/verifikasi, kendaraan; cari (nama/NIM/telepon/plat) & filter; hubungi via WhatsApp; **blokir driver pelanggar aturan** (dengan alasan wajib, driver menerima notifikasi & tidak bisa online/menerima pesanan baru; login tetap boleh) dan buka blokirnya kembali
+- **Monitor Pesanan**: pantau pesanan aktif (mencari/dikonfirmasi/berjalan), selesai, dan dibatalkan lintas pengguna; **batalkan pesanan bermasalah** (mis. nyangkut tanpa driver) — penumpang & driver menerima notifikasi pembatalan
+- **Laporan**: tindak lanjut laporan pelanggaran dari pengguna (penumpang → driver atau driver → penumpang) — blokir driver langsung dari laporan (laporan otomatis ditutup) atau tandai selesai dengan catatan
+- Kelola lokasi: nama, zona, koordinat peta (tarif otomatis dari jarak)
+
+**Keamanan & penanganan sengketa (semua peran)**
+- **Tombol Lapor** di detail pesanan: penumpang melaporkan driver dan driver melaporkan penumpang (kategori tetap + uraian; satu laporan per pesanan per pelapor; admin menerima notifikasi push). Di dialog laporan tersedia tautan darurat **112**
+- **Pembatalan oleh driver** (sebelum menjemput): pesanan kembali mencari driver lain — tidak hangus; penumpang diberi tahu dan pesanan di-broadcast ulang ke driver online
+- **Kedaluwarsa otomatis**: pesanan yang lebih dari 30 menit tidak ditemukan driver dibatalkan otomatis (dibersihkan "malas" saat aplikasi tersentuh — tanpa cron, cocok untuk serverless); penumpang menerima notifikasi
 
 **Tarif (daftar harga resmi KOMAH, dihitung dari jarak tempuh rute)**
 - Jarak tempuh: 100 m–2,2 km **Rp6.000**, bertambah bertingkat tiap 0,5 km hingga 10 km (Rp20.000), lalu per km utuh hingga 25 km (Rp55.000)

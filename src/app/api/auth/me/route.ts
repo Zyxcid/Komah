@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, toSafeUser } from "@/lib/session";
 import { db } from "@/lib/db";
+import { expireStaleMencariOrders } from "@/lib/order-expiry";
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ user: null }, { status: 200 });
+
+  // Bersihkan pesanan usang (MENCARI > 30 menit) — beranda penumpang
+  // adalah titik yang paling sering tersentuh, jadi kedaluwarsa
+  // "malas" ini efektif tanpa cron.
+  await expireStaleMencariOrders().catch(() => {});
 
   const [addresses, activeOrder, activeDriveOrder] = await Promise.all([
     db.savedAddress.findMany({
