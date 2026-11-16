@@ -6,7 +6,7 @@
 // dan driver terkait menerima notifikasi.
 
 import { useMemo, useState } from "react";
-import { Ban, Loader2, ReceiptText } from "lucide-react";
+import { AlertTriangle, Ban, Loader2, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -36,7 +36,7 @@ const FILTERS: Array<{ key: Filter; label: string }> = [
 export function AdminOrdersView() {
   const { toast } = useToast();
   const [filter, setFilter] = useState<Filter>("aktif");
-  const { data, refetch, loading } = useApi<{ orders: AdminOrderT[] }>(`/api/admin/orders?status=${filter}`, {
+  const { data, refetch, loading, error } = useApi<{ orders: AdminOrderT[] }>(`/api/admin/orders?status=${filter}`, {
     interval: 10000,
   });
   const orders = data?.orders || [];
@@ -83,7 +83,13 @@ export function AdminOrdersView() {
         ))}
       </div>
 
-      {loading ? (
+      {error ? (
+        <EmptyState
+          icon={<AlertTriangle size={26} />}
+          title="Gagal memuat pesanan"
+          desc={`${error} Coba muat ulang; bila berlanjut, jalankan npm run db:push dan periksa log server.`}
+        />
+      ) : loading ? (
         <div className="h-32 animate-pulse rounded-2xl bg-muted" />
       ) : orders.length === 0 ? (
         <EmptyState

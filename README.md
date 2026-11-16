@@ -96,6 +96,7 @@ npm run db:reset    # Hapus semua tabel + tanam ulang data demo (reset bersih)
 - **Kelola Driver**: direktori seluruh driver — rating & jumlah penilaian, total perjalanan & pendapatan, status online/verifikasi, kendaraan; cari (nama/NIM/telepon/plat) & filter; hubungi via WhatsApp; **blokir driver pelanggar aturan** (dengan alasan wajib, driver menerima notifikasi & tidak bisa online/menerima pesanan baru; login tetap boleh) dan buka blokirnya kembali
 - **Monitor Pesanan**: pantau pesanan aktif (mencari/dikonfirmasi/berjalan), selesai, dan dibatalkan lintas pengguna; **batalkan pesanan bermasalah** (mis. nyangkut tanpa driver) — penumpang & driver menerima notifikasi pembatalan
 - **Laporan**: tindak lanjut laporan pelanggaran dari pengguna (penumpang → driver atau driver → penumpang) — blokir driver langsung dari laporan (laporan otomatis ditutup) atau tandai selesai dengan catatan
+- **Kelola Tarif**: seluruh angka daftar harga resmi (tingkat jarak ≤10 km, tarif per km 11–25, di atas 25 km, tambahan hujan/porsi/tempat pembelian/waktu tunggu/jam malam) dapat diubah kapan saja — dengan uji hitung langsung sebelum simpan; berlaku untuk pesanan baru, pesanan lama memakai tarif yang tersimpan di pesanannya
 - Kelola lokasi: nama, zona, koordinat peta (tarif otomatis dari jarak)
 
 **Keamanan & penanganan sengketa (semua peran)**

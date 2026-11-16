@@ -8,6 +8,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  AlertTriangle,
   Ban,
   Bike,
   Check,
@@ -54,7 +55,7 @@ function ratingColor(r: number) {
 
 export function AdminDriversView() {
   const { toast } = useToast();
-  const { data, refetch, loading } = useApi<{ drivers: DriverAdminT[] }>("/api/admin/drivers", { interval: 15000 });
+  const { data, refetch, loading, error } = useApi<{ drivers: DriverAdminT[] }>("/api/admin/drivers", { interval: 15000 });
   const drivers = data?.drivers || [];
 
   const [q, setQ] = useState("");
@@ -170,8 +171,15 @@ export function AdminDriversView() {
         </div>
       </div>
 
-      {/* Daftar driver */}
-      {loading ? (
+      {/* Gagal memuat: tampilkan JELAS — jangan terlihat seperti "kosong"
+          (penyebab klasik: database belum db:push setelah pembaruan skema). */}
+      {error ? (
+        <EmptyState
+          icon={<AlertTriangle size={26} />}
+          title="Gagal memuat daftar driver"
+          desc={`${error} Coba muat ulang; bila berlanjut, jalankan npm run db:push dan periksa log server.`}
+        />
+      ) : loading ? (
         <div className="h-32 animate-pulse rounded-2xl bg-muted" />
       ) : filtered.length === 0 ? (
         <EmptyState

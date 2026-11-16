@@ -1,140 +1,184 @@
 // Tarif resmi KOMAH — "Daftar Harga Bike & Delivery" dari admin KOMAH
 // (diberlakukan 15 November 2026). Menggantikan sistem tarif zona lama:
 // kini berbasis JARAK TEMPUH rute + surcharge resmi (hujan, porsi, tempat
-// pembelian, waktu tunggu, jam malam). Kolom Location.fare & Setting
-// "baseFare" tidak dipakai lagi untuk harga.
+// pembelian, waktu tunggu, jam malam).
+//
+// Sejak v5 SELURUH ANGKA tarif dapat diubah admin lewat panel Kelola Tarif
+// (disimpan di tabel Setting, key "fareConfig", bentuk JSON FareConfig).
+// DEFAULT_FARE_CONFIG = daftar resmi 15 Nov 2026 — dipakai bila admin belum
+// pernah mengubah apa pun. Fungsi-fungsi di file ini MURNI (tanpa DB):
+// pemanggil server memuat config lewat getFareConfig() (src/lib/fare-config.ts),
+// klien mengambilnya dari GET /api/fare-config.
 
 export type FareOrderType = "OJEK" | "BARANG" | "MAKANAN";
 
-// ===================== 1) Harga jarak tempuh =====================
-// 100 m–2,2 km Rp6.000, lalu bertingkat tiap 0,5 km hingga 10 km,
-// dan per km utuh (11–25 km) sesuai daftar resmi.
+// ===================== 0) Konfigurasi tarif =====================
 
-/** Tingkatan ≤10 km: [batas atas km, tarif Rp]. */
-const TIERS: ReadonlyArray<readonly [number, number]> = [
-  [2.2, 6000],
-  [3.0, 7000],
-  [4.0, 8000],
-  [4.5, 9000],
-  [5.0, 10000],
-  [5.5, 11000],
-  [6.0, 12000],
-  [6.5, 13000],
-  [7.0, 14000],
-  [7.5, 15000],
-  [8.0, 16000],
-  [8.5, 17000],
-  [9.0, 18000],
-  [9.5, 19000],
-  [10.0, 20000],
-];
+/** Seluruh angka tarif — diedit admin di panel Kelola Tarif. */
+export interface FareConfig {
+  /** Tingkatan ≤10 km: batas atas (km) → tarif Rp. Harus naik & ≤10. */
+  tiers: Array<{ upTo: number; fare: number }>;
+  /** Tarif per km utuh 11–25 km. */
+  kmFare: Array<{ km: number; fare: number }>;
+  /** Di atas 25 km (di luar daftar): tarif dasar + per km berikutnya. */
+  over25Base: number;
+  over25PerKm: number;
+  /** Tambahan hujan (semua layanan): ≤ rainKmLimit → rainShort, di atasnya rainLong. */
+  rainShort: number;
+  rainLong: number;
+  rainKmLimit: number;
+  /** Hujan khusus antar makanan (aturan Food Delivery): tambahan flat. */
+  foodRainFlat: number;
+  /** Porsi makanan: dari porsi ke-N → tambahan Rp (menurun agar mudah dicari). */
+  portionSteps: Array<{ from: number; add: number }>;
+  /** Tempat pembelian: dari tempat ke-N → tambahan Rp. */
+  placeSteps: Array<{ from: number; add: number }>;
+  /** Waktu tunggu: dari menit ke-N → tambahan Rp. */
+  waitingSteps: Array<{ from: number; add: number }>;
+  /** Jam malam (antar makanan): 22:30 / 23:00 / 00:00–05:00 WIB. */
+  night2230: number;
+  night2300: number;
+  night0000: number;
+}
 
-/** Tarif per km utuh >10 km: [km, tarif Rp]. */
-const KM_FARE: Readonly<Record<number, number>> = {
-  11: 24000,
-  12: 26000,
-  13: 28000,
-  14: 30000,
-  15: 32000,
-  16: 34000,
-  17: 36000,
-  18: 38000,
-  19: 40000,
-  20: 43000,
-  21: 45000,
-  22: 47000,
-  23: 49000,
-  24: 51000,
-  25: 55000,
+/** Daftar resmi 15 November 2026 — nilai bawaan. */
+export const DEFAULT_FARE_CONFIG: FareConfig = {
+  tiers: [
+    { upTo: 2.2, fare: 6000 },
+    { upTo: 3.0, fare: 7000 },
+    { upTo: 4.0, fare: 8000 },
+    { upTo: 4.5, fare: 9000 },
+    { upTo: 5.0, fare: 10000 },
+    { upTo: 5.5, fare: 11000 },
+    { upTo: 6.0, fare: 12000 },
+    { upTo: 6.5, fare: 13000 },
+    { upTo: 7.0, fare: 14000 },
+    { upTo: 7.5, fare: 15000 },
+    { upTo: 8.0, fare: 16000 },
+    { upTo: 8.5, fare: 17000 },
+    { upTo: 9.0, fare: 18000 },
+    { upTo: 9.5, fare: 19000 },
+    { upTo: 10.0, fare: 20000 },
+  ],
+  kmFare: [
+    { km: 11, fare: 24000 },
+    { km: 12, fare: 26000 },
+    { km: 13, fare: 28000 },
+    { km: 14, fare: 30000 },
+    { km: 15, fare: 32000 },
+    { km: 16, fare: 34000 },
+    { km: 17, fare: 36000 },
+    { km: 18, fare: 38000 },
+    { km: 19, fare: 40000 },
+    { km: 20, fare: 43000 },
+    { km: 21, fare: 45000 },
+    { km: 22, fare: 47000 },
+    { km: 23, fare: 49000 },
+    { km: 24, fare: 51000 },
+    { km: 25, fare: 55000 },
+  ],
+  over25Base: 55000,
+  over25PerKm: 2000,
+  rainShort: 2000,
+  rainLong: 4000,
+  rainKmLimit: 10,
+  foodRainFlat: 2000,
+  portionSteps: [
+    { from: 9, add: 5000 },
+    { from: 7, add: 4000 },
+    { from: 5, add: 3000 },
+    { from: 3, add: 2000 },
+  ],
+  placeSteps: [
+    { from: 5, add: 5000 },
+    { from: 4, add: 3000 },
+    { from: 3, add: 2000 },
+    { from: 2, add: 1000 },
+  ],
+  waitingSteps: [
+    { from: 60, add: 8000 },
+    { from: 52, add: 7000 },
+    { from: 45, add: 6000 },
+    { from: 37, add: 5000 },
+    { from: 30, add: 4000 },
+    { from: 22, add: 3000 },
+    { from: 15, add: 2000 },
+    { from: 7, add: 1000 },
+  ],
+  night2230: 1000,
+  night2300: 2000,
+  night0000: 5000,
 };
+
+// ===================== 1) Harga jarak tempuh =====================
 
 /**
  * Tarif jarak tempuh. Jarak dibulatkan KE ATAS per 0,1 km (≤10 km) atau
  * per km utuh (>10 km) — konvensi ojek: 2,25 km dihitung 2,3 km.
- * Di atas 25 km (di luar daftar resmi): Rp55.000 + Rp2.000/km berikutnya,
- * mengikuti pola 21–24 km.
+ * Di atas 25 km: over25Base + over25PerKm/km berikutnya.
  */
-export function distanceFare(kmInput: number): { km: number; fare: number } {
+export function distanceFare(kmInput: number, cfg: FareConfig = DEFAULT_FARE_CONFIG): { km: number; fare: number } {
   const km = Number.isFinite(kmInput) && kmInput > 0 ? kmInput : 0.1; // minimal 100 m
   if (km <= 10) {
     const d = Math.ceil(km * 10) / 10;
-    for (const [upTo, fare] of TIERS) {
-      if (d <= upTo) return { km: d, fare };
+    for (const t of cfg.tiers) {
+      if (d <= t.upTo) return { km: d, fare: t.fare };
     }
   }
   const whole = Math.max(11, Math.ceil(km));
-  if (whole <= 25) return { km: whole, fare: KM_FARE[whole] };
-  return { km: whole, fare: 55000 + (whole - 25) * 2000 };
+  const entry = [...cfg.kmFare].sort((a, b) => a.km - b.km).find((e) => e.km === whole);
+  if (entry && whole <= 25) return { km: whole, fare: entry.fare };
+  return { km: whole, fare: cfg.over25Base + (whole - 25) * cfg.over25PerKm };
 }
 
-// ===================== 2) Surcharge resmi =====================
+// ===================== 2) Surcharge =====================
 
-/** Hujan (pelanggan tetap minta jalan): ≤10 km +2.000, >10 km +4.000. */
-export function rainSurcharge(km: number): number {
-  return km <= 10 ? 2000 : 4000;
+/** Hujan (pelanggan tetap minta jalan): beda jarak pendek/panjang. */
+export function rainSurcharge(km: number, cfg: FareConfig = DEFAULT_FARE_CONFIG): number {
+  return km <= cfg.rainKmLimit ? cfg.rainShort : cfg.rainLong;
 }
 
-/** Hujan khusus antar makanan (aturan Food Delivery): tambahan flat 2.000. */
-export const FOOD_RAIN_FLAT = 2000;
-
-/** Porsi makanan/minuman: 1–2 normal, 3–4 +2.000, 5–6 +3.000, 7–8 +4.000, ≥9 +5.000. */
-export function portionSurcharge(portions: number): number {
-  if (portions >= 9) return 5000;
-  if (portions >= 7) return 4000;
-  if (portions >= 5) return 3000;
-  if (portions >= 3) return 2000;
-  return 0;
-}
-
-/** Tempat pembelian: 1 +0, 2 +1.000, 3 +2.000, 4 +3.000, ≥5 +5.000. */
-export function placeSurcharge(places: number): number {
-  if (places >= 5) return 5000;
-  if (places >= 4) return 3000;
-  if (places >= 3) return 2000;
-  if (places >= 2) return 1000;
-  return 0;
-}
-
-/** Ambang waktu tunggu resmi (menit → tambahan Rp), menurun agar mudah dicari. */
-const WAITING_STEPS: ReadonlyArray<readonly [number, number]> = [
-  [60, 8000],
-  [52, 7000],
-  [45, 6000],
-  [37, 5000],
-  [30, 4000],
-  [22, 3000],
-  [15, 2000],
-  [7, 1000],
-];
-
-/**
- * Waktu tunggu di tempat pembelian: ≥7 mnt +1.000, ≥15 +2.000, ≥22 +3.000,
- * ≥30 +4.000, ≥37 +5.000, ≥45 +6.000, ≥52 +7.000, ≥60 +8.000 (maksimum).
- */
-export function waitingSurcharge(minutes: number): number {
-  for (const [from, add] of WAITING_STEPS) {
-    if (minutes >= from) return add;
+/** Porsi makanan/minuman (aturan Food Delivery). */
+export function portionSurcharge(portions: number, cfg: FareConfig = DEFAULT_FARE_CONFIG): number {
+  for (const s of cfg.portionSteps) {
+    if (portions >= s.from) return s.add;
   }
   return 0;
 }
 
-/** Ambang resmi waktu tunggu — dipakai pilihan chip di aplikasi driver. */
+/** Tempat pembelian. */
+export function placeSurcharge(places: number, cfg: FareConfig = DEFAULT_FARE_CONFIG): number {
+  for (const s of cfg.placeSteps) {
+    if (places >= s.from) return s.add;
+  }
+  return 0;
+}
+
+/**
+ * Waktu tunggu di tempat pembelian (maksimum = langkah terbesar).
+ */
+export function waitingSurcharge(minutes: number, cfg: FareConfig = DEFAULT_FARE_CONFIG): number {
+  for (const s of cfg.waitingSteps) {
+    if (minutes >= s.from) return s.add;
+  }
+  return 0;
+}
+
+/** Ambang pilihan waktu tunggu di aplikasi driver (menit — bukan uang). */
 export const WAITING_CHOICES = [0, 7, 15, 22, 30, 37, 45, 52, 60] as const;
 
 /**
- * Jam malam (antar makanan): 22:30 +1.000, 23:00 +2.000, 00:00 +5.000
+ * Jam malam (antar makanan): 22:30 / 23:00 / 00:00–05:00 WIB
  * (kesepakatan driver & pelanggan). Waktu dihitung WIB (UTC+7) secara
  * eksplisit agar sama di server (UTC) dan perangkat apa pun.
- * Asumsi: tarif 00:00 berlaku hingga 05:00 WIB (daftar resmi hanya memberi
- * titik awal 00:00).
  */
-export function nightSurcharge(at: Date = new Date()): number {
+export function nightSurcharge(at: Date = new Date(), cfg: FareConfig = DEFAULT_FARE_CONFIG): number {
   // Milidetik sejak tengah malam WIB (mod ganda menjaga hasil selalu 0–24 jam).
   const msSinceMidnightWib = (((at.getTime() + 7 * 3600_000) % 86_400_000) + 86_400_000) % 86_400_000;
   const minutesOfDay = Math.floor(msSinceMidnightWib / 60_000);
-  if (minutesOfDay >= 23 * 60) return 2000; // 23:00–24:00
-  if (minutesOfDay >= 22 * 60 + 30) return 1000; // 22:30–23:00
-  if (minutesOfDay < 5 * 60) return 5000; // 00:00–05:00
+  if (minutesOfDay >= 23 * 60) return cfg.night2300; // 23:00–24:00
+  if (minutesOfDay >= 22 * 60 + 30) return cfg.night2230; // 22:30–23:00
+  if (minutesOfDay < 5 * 60) return cfg.night0000; // 00:00–05:00
   return 0;
 }
 
@@ -177,19 +221,20 @@ export interface FareBreakdown {
 }
 
 /**
- * Hitung tarif resmi lengkap. Aturan Food Delivery (porsi, tempat, tunggu,
+ * Hitung tarif lengkap. Aturan Food Delivery (porsi, tempat, tunggu,
  * hujan flat, jam malam) hanya berlaku untuk layanan MAKANAN; surcharge
- * hujan berbasis jarak berlaku untuk semua layanan.
+ * hujan berbasis jarak berlaku untuk semua layanan. Angka mengikuti
+ * config (default = daftar resmi).
  */
-export function calcOfficialFare(input: FareInput): FareBreakdown {
-  const { km, fare: base } = distanceFare(input.distanceKm);
+export function calcOfficialFare(input: FareInput, cfg: FareConfig = DEFAULT_FARE_CONFIG): FareBreakdown {
+  const { km, fare: base } = distanceFare(input.distanceKm, cfg);
   const isFood = input.type === "MAKANAN";
-  const rain = input.rain ? rainSurcharge(km) : 0;
-  const foodRain = isFood && input.rain ? FOOD_RAIN_FLAT : 0;
-  const portions = isFood ? portionSurcharge(input.portions ?? 1) : 0;
-  const places = isFood ? placeSurcharge(input.places ?? 1) : 0;
-  const waiting = isFood ? waitingSurcharge(input.waitingMinutes ?? 0) : 0;
-  const night = isFood ? nightSurcharge(input.orderTime ?? new Date()) : 0;
+  const rain = input.rain ? rainSurcharge(km, cfg) : 0;
+  const foodRain = isFood && input.rain ? cfg.foodRainFlat : 0;
+  const portions = isFood ? portionSurcharge(input.portions ?? 1, cfg) : 0;
+  const places = isFood ? placeSurcharge(input.places ?? 1, cfg) : 0;
+  const waiting = isFood ? waitingSurcharge(input.waitingMinutes ?? 0, cfg) : 0;
+  const night = isFood ? nightSurcharge(input.orderTime ?? new Date(), cfg) : 0;
   return {
     distanceKm: km,
     base,

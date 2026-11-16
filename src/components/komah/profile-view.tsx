@@ -250,13 +250,15 @@ export function ProfileView() {
             Halaman utama saat membuka aplikasi mengikuti mode ini.
             {me?.activeDrive && " Selesaikan pesanan yang sedang diantar untuk bisa pindah mode."}
           </p>
-          <div className="mt-3.5 grid grid-cols-2 gap-2.5">
+          {/* Stack di layar sempit: tombol lebar penuh agar ikon + teks tidak
+              terpotong (dulu grid 2 kolom → cemplang di ponsel kecil). */}
+          <div className="mt-3.5 grid gap-2.5 sm:grid-cols-2">
             <button
               onClick={() => switchAppMode("PENUMPANG")}
               disabled={modeBusy || (me?.activeDrive === true && me?.appMode !== "PENUMPANG")}
               aria-pressed={me?.appMode === "PENUMPANG"}
               className={cn(
-                "flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all disabled:opacity-50",
+                "flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all disabled:opacity-50",
                 me?.appMode === "PENUMPANG"
                   ? "border-unp bg-card shadow-md"
                   : "border-border bg-muted/40 hover:border-unp/40"
@@ -270,8 +272,9 @@ export function ProfileView() {
               >
                 <MapPin size={19} />
               </span>
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <span className="block text-sm font-extrabold">Penumpang</span>
+                <span className="block text-[11px] leading-snug text-muted-foreground">Pesan ojek, antar barang &amp; makanan</span>
               </span>
               {me?.appMode === "PENUMPANG" && <Check size={17} className="ml-auto shrink-0 text-unp" />}
             </button>
@@ -280,7 +283,7 @@ export function ProfileView() {
               disabled={modeBusy || (!!activeOrder && me?.appMode !== "DRIVER")}
               aria-pressed={me?.appMode === "DRIVER"}
               className={cn(
-                "flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all disabled:opacity-50",
+                "flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all disabled:opacity-50",
                 me?.appMode === "DRIVER"
                   ? "border-unp bg-card shadow-md"
                   : "border-border bg-muted/40 hover:border-unp/40"
@@ -294,8 +297,9 @@ export function ProfileView() {
               >
                 <Bike size={19} />
               </span>
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <span className="block text-sm font-extrabold">Driver</span>
+                <span className="block text-[11px] leading-snug text-muted-foreground">Terima pesanan &amp; lihat pendapatan</span>
               </span>
               {me?.appMode === "DRIVER" && <Check size={17} className="ml-auto shrink-0 text-unp" />}
             </button>

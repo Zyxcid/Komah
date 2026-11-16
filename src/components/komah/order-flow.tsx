@@ -33,7 +33,7 @@ import {
 import { LocationPicker } from "./location-picker";
 import { RouteMap } from "./map-view";
 import { TypeBadge } from "./bits";
-import { calcOfficialFare, haversineKm, ROAD_FACTOR } from "@/lib/fare";
+import { calcOfficialFare, DEFAULT_FARE_CONFIG, haversineKm, ROAD_FACTOR, type FareConfig as FareConfigT } from "@/lib/fare";
 import type { FareBreakdownT, LocationT, OrderT, OrderType } from "@/lib/types";
 
 const SERVICES: Array<{ type: OrderType; label: string; icon: React.ElementType }> = [
@@ -123,16 +123,36 @@ export function OrderFlowView({ initialType }: { initialType?: OrderType }) {
     return haversineKm({ lat: pickup.lat, lng: pickup.lng }, { lat: dest.lat, lng: dest.lng }) * ROAD_FACTOR;
   }, [pickup, dest]);
 
+  // Tarif aktif dari server (bisa diatur admin) — dipakai preview di sini;
+  // server tetap menghitung ulang saat pesanan dibuat. Default resmi
+  // dipakai bila pengambilan gagal (offline dsb.).
+  const [fareConfig, setFareConfig] = useState<FareConfigT>(DEFAULT_FARE_CONFIG);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/fare-config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (alive && j?.config) setFareConfig(j.config);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const fare = useMemo<FareBreakdownT | null>(() => {
     if (!distanceKm) return null;
-    return calcOfficialFare({
-      distanceKm,
-      type,
-      rain,
-      portions: type === "MAKANAN" ? Math.max(1, Number(portions) || 1) : undefined,
-      places: type === "MAKANAN" ? Math.max(1, Number(places) || 1) : undefined,
-    });
-  }, [distanceKm, type, rain, portions, places]);
+    return calcOfficialFare(
+      {
+        distanceKm,
+        type,
+        rain,
+        portions: type === "MAKANAN" ? Math.max(1, Number(portions) || 1) : undefined,
+        places: type === "MAKANAN" ? Math.max(1, Number(places) || 1) : undefined,
+      },
+      fareConfig
+    );
+  }, [distanceKm, type, rain, portions, places, fareConfig]);
 
   const ruteValid =
     !!pickup &&

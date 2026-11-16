@@ -60,7 +60,7 @@ const UNP_CENTER = { lat: -0.9009, lng: 100.3505 };
 
 export function AdminLocationsView() {
   const { toast } = useToast();
-  const { data, refetch, loading } = useApi<{ locations: LocationT[] }>("/api/admin/locations", {
+  const { data, refetch, loading, error } = useApi<{ locations: LocationT[] }>("/api/admin/locations", {
     interval: 30000,
   });
   const locations = data?.locations || [];
@@ -156,25 +156,35 @@ export function AdminLocationsView() {
         </Button>
       </div>
 
-      {/* Ringkasan aturan harga resmi (info saja — otomatis dihitung sistem) */}
+      {/* Jembatan ke Kelola Tarif — angka tarif tidak lagi statis di sini */}
       <div className="rounded-3xl border-2 border-unp/25 bg-unp-soft/40 p-5">
-        <div className="flex items-center gap-3.5">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
-            <MapPin size={22} />
-          </span>
-          <div>
-            <p className="text-sm font-extrabold">Harga otomatis sesuai daftar resmi KOMAH</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Tarif dihitung dari jarak tempuh rute: 100 m–2,2 km Rp6.000, bertambah bertingkat hingga
-              25 km, plus tambahan hujan, porsi, tempat pembelian, waktu tunggu, dan jam malam. Pastikan
-              setiap lokasi memiliki koordinat peta agar jarak terukur.
-            </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
+              <MapPin size={22} />
+            </span>
+            <div>
+              <p className="text-sm font-extrabold">Tarif diatur lewat panel Kelola Tarif</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Tarif dihitung dari jarak tempuh rute plus tambahan resmi — angkanya bisa diubah kapan saja di
+                Kelola Tarif. Pastikan setiap lokasi memiliki koordinat peta agar jarak terukur.
+              </p>
+            </div>
           </div>
+          <Button onClick={() => navigate("/kelola-tarif")} variant="outline" className="shrink-0 border-2 font-bold">
+            Buka Kelola Tarif
+          </Button>
         </div>
       </div>
 
       {/* Daftar lokasi per kategori */}
-      {loading ? (
+      {error ? (
+        <EmptyState
+          icon={<AlertTriangle size={26} />}
+          title="Gagal memuat lokasi"
+          desc={`${error} Coba muat ulang; bila berlanjut, jalankan npm run db:push dan periksa log server.`}
+        />
+      ) : loading ? (
         <div className="h-32 animate-pulse rounded-2xl bg-muted" />
       ) : locations.length === 0 ? (
         <EmptyState

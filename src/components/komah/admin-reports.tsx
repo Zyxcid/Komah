@@ -6,7 +6,7 @@
 // atau menandai laporan selesai dengan catatan.
 
 import { useMemo, useState } from "react";
-import { Ban, Check, Flag, Loader2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Ban, Check, Flag, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +28,7 @@ type Filter = "terbuka" | "selesai";
 
 export function AdminReportsView() {
   const { toast } = useToast();
-  const { data, refetch, loading } = useApi<{ reports: ReportT[]; openCount: number }>("/api/admin/reports", {
+  const { data, refetch, loading, error } = useApi<{ reports: ReportT[]; openCount: number }>("/api/admin/reports", {
     interval: 15000,
   });
   const reports = data?.reports || [];
@@ -107,7 +107,13 @@ export function AdminReportsView() {
         ))}
       </div>
 
-      {loading ? (
+      {error ? (
+        <EmptyState
+          icon={<AlertTriangle size={26} />}
+          title="Gagal memuat laporan"
+          desc={`${error} Coba muat ulang; bila berlanjut, jalankan npm run db:push dan periksa log server.`}
+        />
+      ) : loading ? (
         <div className="h-32 animate-pulse rounded-2xl bg-muted" />
       ) : filtered.length === 0 ? (
         <EmptyState

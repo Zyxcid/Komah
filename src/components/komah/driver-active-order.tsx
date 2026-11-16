@@ -9,7 +9,7 @@
 // aksi utama LANGSUNG DI ATAS PETA (selalu terlihat tanpa scroll), kartu penumpang
 // + tombol chat WhatsApp. Tanpa animasi denyut apa pun — tampilan tenang saat berkendara.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bike, Check, Clock, Loader2, MapPin, Navigation, MessageCircle, Route as RouteIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +28,7 @@ import { fmtDur, fmtKm, pinMoved, rupiah, waLink } from "./lib";
 import { RouteMap } from "./map-view";
 import { PointRow, TypeIcon, UserAvatar } from "./bits";
 import { useOsmrRoute } from "./use-route";
-import { WAITING_CHOICES, waitingSurcharge } from "@/lib/fare";
+import { DEFAULT_FARE_CONFIG, WAITING_CHOICES, waitingSurcharge, type FareConfig } from "@/lib/fare";
 import type { LatLng } from "./map-core";
 import type { OrderT } from "@/lib/types";
 
@@ -49,6 +49,21 @@ export function DriverActiveOrder({
   // Waktu tunggu (aturan Food Delivery) — dipilih driver sebelum menyelesaikan
   // pesanan makanan; server menghitung ulang total tarifnya.
   const [waiting, setWaiting] = useState(0);
+  // Tarif aktif dari server (bisa diatur admin) — dipakai label chip tunggu;
+  // server tetap menghitung ulang saat pesanan diselesaikan.
+  const [fareConfig, setFareConfig] = useState<FareConfig>(DEFAULT_FARE_CONFIG);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/fare-config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (alive && j?.config) setFareConfig(j.config);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const pickupPos = useMemo<LatLng | null>(() => {
     if (order.pickupLat != null && order.pickupLng != null) return { lat: order.pickupLat, lng: order.pickupLng };
@@ -167,7 +182,7 @@ export function DriverActiveOrder({
                 <Clock size={15} className="text-unp" /> Waktu tunggu di tempat pembelian
               </p>
               <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                Sesuai aturan resmi: ≥7 menit +Rp1.000, bertambah tiap tingkatan.
+                Sesuai aturan resmi (mengikuti tarif yang diatur admin).
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {WAITING_CHOICES.map((m) => (
@@ -183,7 +198,7 @@ export function DriverActiveOrder({
                         : "border-border bg-card text-muted-foreground hover:border-unp/40"
                     )}
                   >
-                    {m === 0 ? "Tidak menunggu" : `${m} mnt${waitingSurcharge(m) ? ` (+${rupiah(waitingSurcharge(m))})` : ""}`}
+                    {m === 0 ? "Tidak menunggu" : `${m} mnt${waitingSurcharge(m, fareConfig) ? ` (+${rupiah(waitingSurcharge(m, fareConfig))})` : ""}`}
                   </button>
                 ))}
               </div>
@@ -195,7 +210,7 @@ export function DriverActiveOrder({
             className="h-14 w-full gap-2 bg-gold text-base font-extrabold text-unp-deep hover:bg-gold-dark"
           >
             {busyThis ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-            Selesaikan Pesanan (+{rupiah(order.fare - 1000 + (order.type === "MAKANAN" ? waitingSurcharge(waiting) : 0))})
+            Selesaikan Pesanan (+{rupiah(order.fare - 1000 + (order.type === "MAKANAN" ? waitingSurcharge(waiting, fareConfig) : 0))})
           </Button>
         </div>
       )}

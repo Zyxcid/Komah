@@ -4,7 +4,7 @@
 // verifikasi driver, kelola driver (blokir/pengawasan), monitor pesanan,
 // dan kelola lokasi. Semua panel dibuka lewat kartu di sini.
 
-import { ChevronRight, ClipboardList, Flag, MapPinned, ReceiptText, ShieldCheck, Users } from "lucide-react";
+import { ChevronRight, ClipboardList, Flag, MapPinned, ReceiptText, ShieldCheck, Users, Wallet } from "lucide-react";
 import { navigate, useApi, useAuth } from "./lib";
 
 interface HomeStats {
@@ -145,6 +145,22 @@ export function AdminHomeView() {
           <p className="mt-3.5 text-base font-extrabold">Laporan</p>
           <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
             Laporan pelanggaran pengguna — blokir driver atau tutup laporan.
+          </p>
+          <p className="mt-3 flex items-center gap-1 text-xs font-bold text-unp">
+            Buka panel <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+          </p>
+        </button>
+
+        <button
+          onClick={() => navigate("/kelola-tarif")}
+          className="group relative overflow-hidden rounded-3xl border-2 border-unp/30 bg-gradient-to-br from-unp-soft/60 to-card p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+        >
+          <span className="flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
+            <Wallet size={24} />
+          </span>
+          <p className="mt-3.5 text-base font-extrabold">Kelola Tarif</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+            Daftar harga resmi: tingkat jarak & semua tambahan — berlaku untuk pesanan baru.
           </p>
           <p className="mt-3 flex items-center gap-1 text-xs font-bold text-unp">
             Buka panel <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />

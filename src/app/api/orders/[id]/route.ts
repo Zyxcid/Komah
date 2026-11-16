@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { calcOfficialFare } from "@/lib/fare";
+import { getFareConfig } from "@/lib/fare-config";
 import { expireStaleMencariOrders } from "@/lib/order-expiry";
 import {
   msgDriverCancelled,
@@ -226,15 +227,18 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       const n = Math.round(Number(body.waitingMinutes));
       waitingMinutes = Number.isFinite(n) && n >= 0 && n <= 180 ? n : 0;
     }
-    const breakdown = calcOfficialFare({
-      distanceKm: (order.distanceMeters ?? 100) / 1000,
-      type: order.type as "OJEK" | "BARANG" | "MAKANAN",
-      rain: order.rain,
-      portions: order.portions ?? undefined,
-      places: order.places ?? undefined,
-      waitingMinutes: waitingMinutes ?? undefined,
-      orderTime: order.createdAt,
-    });
+    const breakdown = calcOfficialFare(
+      {
+        distanceKm: (order.distanceMeters ?? 100) / 1000,
+        type: order.type as "OJEK" | "BARANG" | "MAKANAN",
+        rain: order.rain,
+        portions: order.portions ?? undefined,
+        places: order.places ?? undefined,
+        waitingMinutes: waitingMinutes ?? undefined,
+        orderTime: order.createdAt,
+      },
+      await getFareConfig()
+    );
     const finalFare = breakdown.total;
     const updated = await db.order.update({
       where: { id: order.id },

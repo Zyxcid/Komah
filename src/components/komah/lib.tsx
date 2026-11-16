@@ -21,6 +21,7 @@ export type Route =
   | { name: "admin-drivers" }
   | { name: "admin-orders" }
   | { name: "admin-reports" }
+  | { name: "admin-fare" }
   | { name: "profile" };
 
 export function parseHash(): { route: Route; query: URLSearchParams } {
@@ -65,6 +66,8 @@ export function parseHash(): { route: Route; query: URLSearchParams } {
       return { route: { name: "admin-orders" }, query };
     case "laporan":
       return { route: { name: "admin-reports" }, query };
+    case "kelola-tarif":
+      return { route: { name: "admin-fare" }, query };
     case "profil":
       return { route: { name: "profile" }, query };
     default:

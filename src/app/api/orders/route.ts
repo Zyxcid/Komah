@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/session";
 import { calcOfficialFare, resolveDistanceMeters } from "@/lib/fare";
 import { pushNewOrderToDrivers } from "@/lib/push";
 import { expireStaleMencariOrders } from "@/lib/order-expiry";
+import { getFareConfig } from "@/lib/fare-config";
 import crypto from "crypto";
 
 const ACTIVE = ["MENCARI", "DIKONFIRMASI", "BERJALAN"] as const;
@@ -144,14 +145,17 @@ export async function POST(req: NextRequest) {
       { lat: pickupLat ?? pickup.lat ?? null, lng: pickupLng ?? pickup.lng ?? null },
       { lat: destLat ?? dest.lat ?? null, lng: destLng ?? dest.lng ?? null }
     );
-    const breakdown = calcOfficialFare({
-      distanceKm: (distanceMeters ?? 100) / 1000,
-      type,
-      rain,
-      portions: portions ?? undefined,
-      places: places ?? undefined,
-      orderTime,
-    });
+    const breakdown = calcOfficialFare(
+      {
+        distanceKm: (distanceMeters ?? 100) / 1000,
+        type,
+        rain,
+        portions: portions ?? undefined,
+        places: places ?? undefined,
+        orderTime,
+      },
+      await getFareConfig()
+    );
     const fare = breakdown.total;
     const order = await db.order.create({
       data: {

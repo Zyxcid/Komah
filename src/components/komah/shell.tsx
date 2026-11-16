@@ -11,7 +11,6 @@ import {
   Home,
   LogOut,
   MapPin,
-  MapPinned,
   ReceiptText,
   User,
   Users,
@@ -36,6 +35,7 @@ import { AdminLocationsView } from "./admin-locations";
 import { AdminDriversView } from "./admin-drivers";
 import { AdminOrdersView } from "./admin-orders";
 import { AdminReportsView } from "./admin-reports";
+import { AdminFareView } from "./admin-fare";
 import { ProfileView } from "./profile-view";
 
 const AUTH_ROUTES = new Set([
@@ -50,6 +50,7 @@ const AUTH_ROUTES = new Set([
   "admin-drivers",
   "admin-orders",
   "admin-reports",
+  "admin-fare",
   "profile",
 ]);
 
@@ -77,6 +78,8 @@ function routeTitle(route: Route): string {
       return "Monitor Pesanan";
     case "admin-reports":
       return "Laporan";
+    case "admin-fare":
+      return "Kelola Tarif";
     case "profile":
       return "Profil Saya";
     case "demo-accounts":
@@ -119,6 +122,8 @@ function ViewFor(route: Route, query: URLSearchParams) {
       return <AdminOrdersView />;
     case "admin-reports":
       return <AdminReportsView />;
+    case "admin-fare":
+      return <AdminFareView />;
     case "profile":
       return <ProfileView />;
     default:
@@ -138,6 +143,9 @@ function AppFrame({ route, children }: { route: Route; children: React.ReactNode
   // Navigasi inti disederhanakan: aplikasi = alat, bukan etalase.
   // Tab driver juga tetap tampil saat driver mode-penumpang sedang membuka
   // dashboard (mis. baru selesai mengantar) — tab mengikuti layar aktif.
+  // Profil TIDAK di tab bar: sudah ada di menu ikon pengguna kanan atas,
+  // supaya navbar mobile tidak sesak (admin hanya 5 tab; Lokasi & Tarif
+  // dibuka lewat kartu di beranda admin).
   const onDriverScreen = role === "DRIVER" && (mode === "DRIVER" || route.name === "driver-mode");
   const tabs =
     role === "ADMIN"
@@ -147,19 +155,15 @@ function AppFrame({ route, children }: { route: Route; children: React.ReactNode
           { name: "admin-drivers", path: "/kelola-driver", label: "Driver", icon: Users },
           { name: "admin-orders", path: "/monitor-pesanan", label: "Pesanan", icon: ReceiptText },
           { name: "admin-reports", path: "/laporan", label: "Laporan", icon: Flag },
-          { name: "admin-locations", path: "/kelola-lokasi", label: "Lokasi", icon: MapPinned },
-          { name: "profile", path: "/profil", label: "Profil", icon: User },
         ]
       : onDriverScreen
         ? [
             { name: "driver-mode", path: "/mode-driver", label: "Dashboard", icon: Bike },
             { name: "history", path: "/riwayat", label: "Riwayat", icon: History },
-            { name: "profile", path: "/profil", label: "Profil", icon: User },
           ]
         : [
             { name: "home", path: "/beranda", label: "Beranda", icon: MapPin },
             { name: "history", path: "/riwayat", label: "Riwayat", icon: History },
-            { name: "profile", path: "/profil", label: "Profil", icon: User },
           ];
 
   const homePath = modeHome(me);
@@ -297,7 +301,7 @@ export default function AppShell() {
         navigate(me.role === "ADMIN" ? "/admin" : "/beranda", true);
         return;
       }
-      if ((route.name === "admin-home" || route.name === "admin" || route.name === "admin-locations" || route.name === "admin-drivers" || route.name === "admin-orders" || route.name === "admin-reports") && me.role !== "ADMIN") {
+      if ((route.name === "admin-home" || route.name === "admin" || route.name === "admin-locations" || route.name === "admin-drivers" || route.name === "admin-orders" || route.name === "admin-reports" || route.name === "admin-fare") && me.role !== "ADMIN") {
         navigate("/beranda", true);
       }
     }
