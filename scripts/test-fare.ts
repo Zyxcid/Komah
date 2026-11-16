@@ -4,7 +4,7 @@
 import {
   distanceFare,
   rainSurcharge,
-  FOOD_RAIN_FLAT,
+  DEFAULT_FARE_CONFIG,
   portionSurcharge,
   placeSurcharge,
   waitingSurcharge,
@@ -63,7 +63,7 @@ eq(distanceFare(0).fare, 6000, "jarak 0 → minimum 100 m");
 eq(rainSurcharge(5), 2000, "hujan ≤10 km +2k");
 eq(rainSurcharge(10), 2000, "hujan tepat 10 km +2k");
 eq(rainSurcharge(11), 4000, "hujan >10 km +4k");
-eq(FOOD_RAIN_FLAT, 2000, "hujan makanan flat 2k");
+eq(DEFAULT_FARE_CONFIG.foodRainFlat, 2000, "hujan makanan flat 2k");
 
 // ==== 4) Surcharge porsi ====
 eq(portionSurcharge(1), 0, "1 porsi normal");

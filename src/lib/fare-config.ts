@@ -18,7 +18,8 @@ export function invalidateFareConfigCache(): void {
 // Nilai dari admin tidak dipercaya mentah: setiap angka divalidasi &
 // dibatasi agar tarif tetap masuk akal dan JSON tidak membengkak.
 
-const MAX_ROWS = 20;
+const MAX_STEP_ROWS = 20;
+const MAX_DISTANCE_ROWS = 60;
 const MAX_FARE = 10_000_000; // Rp10 juta — batas atas grosir anti-salah ketik
 const MAX_KM = 100;
 
@@ -43,7 +44,7 @@ function steps(
 ): Array<{ from: number; add: number }> {
   if (!Array.isArray(raw)) return fallback;
   const out: Array<{ from: number; add: number }> = [];
-  for (const r of raw.slice(0, MAX_ROWS)) {
+  for (const r of raw.slice(0, MAX_STEP_ROWS)) {
     if (typeof r !== "object" || r === null) continue;
     const from = (r as { from?: unknown }).from;
     const add = (r as { add?: unknown }).add;
@@ -57,45 +58,76 @@ function steps(
   return out;
 }
 
-/** Validasi menyeluruh config dari admin; kunci hilang/salah → default. */
+/**
+ * Satu tabel jarak "dari km → tarif": urut naik, baris pertama dipakai
+ * untuk jarak di bawah "dari km" terkecil (tarif minimum).
+ */
+function distanceRows(
+  raw: unknown,
+  fallback: Array<{ fromKm: number; fare: number }>
+): Array<{ fromKm: number; fare: number }> {
+  if (!Array.isArray(raw)) return fallback;
+  const out: Array<{ fromKm: number; fare: number }> = [];
+  for (const r of raw.slice(0, MAX_DISTANCE_ROWS)) {
+    if (typeof r !== "object" || r === null) continue;
+    const o = r as { fromKm?: unknown; fare?: unknown };
+    const fromKm = km1(o.fromKm, 0);
+    if (fromKm <= 0) continue;
+    out.push({ fromKm, fare: num(o.fare, 0) });
+  }
+  if (out.length === 0) return fallback;
+  out.sort((a, b) => a.fromKm - b.fromKm);
+  return out;
+}
+
+/**
+ * Rentang hujan: baris berbatas (upTo) urut naik + SATU baris tanpa batas
+ * di akhir (jarak di atas batas terbesar). Baris tanpa batas hilang/salah
+ * → ditambahkan otomatis memakai tambahan baris berbatas terakhir.
+ */
+function rainTiers(
+  raw: unknown,
+  fallback: Array<{ upTo: number | null; add: number }>
+): Array<{ upTo: number | null; add: number }> {
+  const ensureTail = (bounded: Array<{ upTo: number; add: number }>, tail: { upTo: null; add: number }) => [
+    ...bounded,
+    tail,
+  ];
+  if (!Array.isArray(raw)) return fallback;
+  const bounded: Array<{ upTo: number; add: number }> = [];
+  let tail: { upTo: null; add: number } | null = null;
+  for (const r of raw.slice(0, MAX_STEP_ROWS)) {
+    if (typeof r !== "object" || r === null) continue;
+    const o = r as { upTo?: unknown; add?: unknown };
+    if (o.upTo === null || o.upTo === undefined) {
+      tail = { upTo: null, add: num(o.add, 0) };
+      continue;
+    }
+    const upTo = km1(o.upTo, 0);
+    if (upTo <= 0) continue;
+    bounded.push({ upTo, add: num(o.add, 0) });
+  }
+  if (bounded.length === 0 && tail === null) return fallback;
+  bounded.sort((a, b) => a.upTo - b.upTo);
+  return ensureTail(bounded, tail ?? { upTo: null, add: bounded[bounded.length - 1]?.add ?? 0 });
+}
+
+/**
+ * Validasi menyeluruh config dari admin; kunci hilang/salah → default.
+ * Config format lama (tiers/kmFare terpisah, hujan satu batas) tetap
+ * diterima: bagian surcharge yang masih segenerasi dipertahankan, tabel
+ * jarak & rentang hujan kembali ke daftar resmi.
+ */
 export function sanitizeFareConfig(raw: unknown): FareConfig {
   const d = DEFAULT_FARE_CONFIG;
   if (typeof raw !== "object" || raw === null) return d;
   const r = raw as Record<string, unknown>;
 
-  const tiers = Array.isArray(r.tiers)
-    ? r.tiers
-        .slice(0, MAX_ROWS)
-        .map((t) => {
-          const o = (t ?? {}) as { upTo?: unknown; fare?: unknown };
-          return { upTo: km1(o.upTo, 0), fare: num(o.fare, 0) };
-        })
-        .filter((t) => t.upTo > 0)
-        .sort((a, b) => a.upTo - b.upTo)
-    : [];
-  const kmFareRows = Array.isArray(r.kmFare)
-    ? r.kmFare
-        .slice(0, MAX_ROWS)
-        .map((k) => {
-          const o = (k ?? {}) as { km?: unknown; fare?: unknown };
-          return { from: Math.round(Number(o.km)) || 0, add: num(o.fare, 0) };
-        })
-        .filter((k) => k.from > 0)
-        .sort((a, b) => b.from - a.from)
-    : [];
-  const kmFare = (kmFareRows.length > 0 ? kmFareRows : d.kmFare.map((k) => ({ from: k.km, add: k.fare }))).map((s) => ({
-    km: s.from,
-    fare: s.add,
-  }));
-
   return {
-    tiers: tiers.length > 0 ? tiers : d.tiers,
-    kmFare,
-    over25Base: num(r.over25Base, d.over25Base),
-    over25PerKm: num(r.over25PerKm, d.over25PerKm),
-    rainShort: num(r.rainShort, d.rainShort),
-    rainLong: num(r.rainLong, d.rainLong),
-    rainKmLimit: km1(r.rainKmLimit, d.rainKmLimit),
+    distance: distanceRows(r.distance, d.distance),
+    overMaxBase: num(r.overMaxBase ?? r.over25Base, d.overMaxBase),
+    overMaxPerKm: num(r.overMaxPerKm ?? r.over25PerKm, d.overMaxPerKm),
+    rainTiers: rainTiers(r.rainTiers, d.rainTiers),
     foodRainFlat: num(r.foodRainFlat, d.foodRainFlat),
     portionSteps: steps(r.portionSteps, d.portionSteps, true),
     placeSteps: steps(r.placeSteps, d.placeSteps, true),

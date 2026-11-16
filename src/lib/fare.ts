@@ -16,17 +16,23 @@ export type FareOrderType = "OJEK" | "BARANG" | "MAKANAN";
 
 /** Seluruh angka tarif — diedit admin di panel Kelola Tarif. */
 export interface FareConfig {
-  /** Tingkatan ≤10 km: batas atas (km) → tarif Rp. Harus naik & ≤10. */
-  tiers: Array<{ upTo: number; fare: number }>;
-  /** Tarif per km utuh 11–25 km. */
-  kmFare: Array<{ km: number; fare: number }>;
-  /** Di atas 25 km (di luar daftar): tarif dasar + per km berikutnya. */
-  over25Base: number;
-  over25PerKm: number;
-  /** Tambahan hujan (semua layanan): ≤ rainKmLimit → rainShort, di atasnya rainLong. */
-  rainShort: number;
-  rainLong: number;
-  rainKmLimit: number;
+  /**
+   * SATU tabel jarak tempuh yang menyambung (persis daftar resmi):
+   * "dari km" = batas bawah rentang, berlaku sampai baris berikutnya.
+   * Contoh resmi: 2,3 km ➜ 7k berarti 2,3–3,0 km = Rp7.000.
+   * Di bawah "dari km" terkecil → baris pertama (tarif minimum).
+   */
+  distance: Array<{ fromKm: number; fare: number }>;
+  /** Di atas "dari km" terakhir pada tabel: tarif dasar + per km berikutnya. */
+  overMaxBase: number;
+  overMaxPerKm: number;
+  /**
+   * Tambahan hujan (semua layanan) per RENTANG jarak — baris berbatas
+   * diurutkan naik; baris tanpa batas (upTo: null, selalu terakhir)
+   * berlaku untuk jarak di atas batas terbesar. Default resmi:
+   * s.d. 10 km ➜ +2.000, di atasnya ➜ +4.000.
+   */
+  rainTiers: Array<{ upTo: number | null; add: number }>;
   /** Hujan khusus antar makanan (aturan Food Delivery): tambahan flat. */
   foodRainFlat: number;
   /** Porsi makanan: dari porsi ke-N → tambahan Rp (menurun agar mudah dicari). */
@@ -43,45 +49,44 @@ export interface FareConfig {
 
 /** Daftar resmi 15 November 2026 — nilai bawaan. */
 export const DEFAULT_FARE_CONFIG: FareConfig = {
-  tiers: [
-    { upTo: 2.2, fare: 6000 },
-    { upTo: 3.0, fare: 7000 },
-    { upTo: 4.0, fare: 8000 },
-    { upTo: 4.5, fare: 9000 },
-    { upTo: 5.0, fare: 10000 },
-    { upTo: 5.5, fare: 11000 },
-    { upTo: 6.0, fare: 12000 },
-    { upTo: 6.5, fare: 13000 },
-    { upTo: 7.0, fare: 14000 },
-    { upTo: 7.5, fare: 15000 },
-    { upTo: 8.0, fare: 16000 },
-    { upTo: 8.5, fare: 17000 },
-    { upTo: 9.0, fare: 18000 },
-    { upTo: 9.5, fare: 19000 },
-    { upTo: 10.0, fare: 20000 },
+  distance: [
+    { fromKm: 0.1, fare: 6000 }, // 100 m – 2,2 km
+    { fromKm: 2.3, fare: 7000 },
+    { fromKm: 3.1, fare: 8000 },
+    { fromKm: 4.1, fare: 9000 },
+    { fromKm: 4.6, fare: 10000 },
+    { fromKm: 5.1, fare: 11000 },
+    { fromKm: 5.6, fare: 12000 },
+    { fromKm: 6.1, fare: 13000 },
+    { fromKm: 6.6, fare: 14000 },
+    { fromKm: 7.1, fare: 15000 },
+    { fromKm: 7.6, fare: 16000 },
+    { fromKm: 8.1, fare: 17000 },
+    { fromKm: 8.6, fare: 18000 },
+    { fromKm: 9.1, fare: 19000 },
+    { fromKm: 9.6, fare: 20000 },
+    { fromKm: 11, fare: 24000 },
+    { fromKm: 12, fare: 26000 },
+    { fromKm: 13, fare: 28000 },
+    { fromKm: 14, fare: 30000 },
+    { fromKm: 15, fare: 32000 },
+    { fromKm: 16, fare: 34000 },
+    { fromKm: 17, fare: 36000 },
+    { fromKm: 18, fare: 38000 },
+    { fromKm: 19, fare: 40000 },
+    { fromKm: 20, fare: 43000 },
+    { fromKm: 21, fare: 45000 },
+    { fromKm: 22, fare: 47000 },
+    { fromKm: 23, fare: 49000 },
+    { fromKm: 24, fare: 51000 },
+    { fromKm: 25, fare: 55000 },
   ],
-  kmFare: [
-    { km: 11, fare: 24000 },
-    { km: 12, fare: 26000 },
-    { km: 13, fare: 28000 },
-    { km: 14, fare: 30000 },
-    { km: 15, fare: 32000 },
-    { km: 16, fare: 34000 },
-    { km: 17, fare: 36000 },
-    { km: 18, fare: 38000 },
-    { km: 19, fare: 40000 },
-    { km: 20, fare: 43000 },
-    { km: 21, fare: 45000 },
-    { km: 22, fare: 47000 },
-    { km: 23, fare: 49000 },
-    { km: 24, fare: 51000 },
-    { km: 25, fare: 55000 },
+  overMaxBase: 55000,
+  overMaxPerKm: 2000,
+  rainTiers: [
+    { upTo: 10, add: 2000 },
+    { upTo: null, add: 4000 },
   ],
-  over25Base: 55000,
-  over25PerKm: 2000,
-  rainShort: 2000,
-  rainLong: 4000,
-  rainKmLimit: 10,
   foodRainFlat: 2000,
   portionSteps: [
     { from: 9, add: 5000 },
@@ -113,29 +118,37 @@ export const DEFAULT_FARE_CONFIG: FareConfig = {
 // ===================== 1) Harga jarak tempuh =====================
 
 /**
- * Tarif jarak tempuh. Jarak dibulatkan KE ATAS per 0,1 km (≤10 km) atau
- * per km utuh (>10 km) — konvensi ojek: 2,25 km dihitung 2,3 km.
- * Di atas 25 km: over25Base + over25PerKm/km berikutnya.
+ * Tarif jarak tempuh dari SATU tabel `distance`. Jarak dibulatkan KE ATAS
+ * per 0,1 km (≤10 km) atau per km utuh (>10 km, minimal 11) — konvensi
+ * ojek: 2,25 km dihitung 2,3 km; 10,2 km dihitung 11 km. Baris yang
+ * dipakai = baris dengan "dari km" terbesar yang ≤ jarak. Di atas baris
+ * terakhir: overMaxBase + overMaxPerKm per km berikutnya.
  */
 export function distanceFare(kmInput: number, cfg: FareConfig = DEFAULT_FARE_CONFIG): { km: number; fare: number } {
   const km = Number.isFinite(kmInput) && kmInput > 0 ? kmInput : 0.1; // minimal 100 m
-  if (km <= 10) {
-    const d = Math.ceil(km * 10) / 10;
-    for (const t of cfg.tiers) {
-      if (d <= t.upTo) return { km: d, fare: t.fare };
-    }
+  const d = km <= 10 ? Math.ceil(km * 10) / 10 : Math.max(11, Math.ceil(km));
+  const rows = cfg.distance;
+  if (rows.length === 0) return { km: d, fare: 0 };
+  let fare = rows[0].fare;
+  for (const r of rows) {
+    if (d >= r.fromKm) fare = r.fare;
   }
-  const whole = Math.max(11, Math.ceil(km));
-  const entry = [...cfg.kmFare].sort((a, b) => a.km - b.km).find((e) => e.km === whole);
-  if (entry && whole <= 25) return { km: whole, fare: entry.fare };
-  return { km: whole, fare: cfg.over25Base + (whole - 25) * cfg.over25PerKm };
+  const maxFrom = rows[rows.length - 1].fromKm;
+  if (d > maxFrom) fare = cfg.overMaxBase + (d - maxFrom) * cfg.overMaxPerKm;
+  return { km: d, fare };
 }
 
 // ===================== 2) Surcharge =====================
 
-/** Hujan (pelanggan tetap minta jalan): beda jarak pendek/panjang. */
+/**
+ * Hujan (pelanggan tetap minta jalan) per rentang jarak: baris pertama
+ * yang menampung jarak (upTo null = tanpa batas atas) dipakai.
+ */
 export function rainSurcharge(km: number, cfg: FareConfig = DEFAULT_FARE_CONFIG): number {
-  return km <= cfg.rainKmLimit ? cfg.rainShort : cfg.rainLong;
+  for (const t of cfg.rainTiers) {
+    if (t.upTo === null || km <= t.upTo) return t.add;
+  }
+  return 0;
 }
 
 /** Porsi makanan/minuman (aturan Food Delivery). */

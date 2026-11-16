@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { apiCall, navigate, useApi } from "./lib";
+import { apiCall, useApi } from "./lib";
 import { EmptyState } from "./bits";
 import { PinMap } from "./map-view";
 import type { LocationT } from "@/lib/types";
@@ -149,32 +149,12 @@ export function AdminLocationsView() {
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 pb-10 pt-6 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="max-w-md text-sm text-muted-foreground">
-          Titik yang bisa dipilih penumpang. Atur nama, zona, dan koordinat peta.
+          Titik yang bisa dipilih penumpang. Atur nama, zona, dan koordinat peta —
+          tarif dihitung otomatis dari jarak rute, jadi pastikan koordinat terisi agar jarak terukur.
         </p>
         <Button onClick={openAdd} className="gap-2 bg-gold font-extrabold hover:bg-gold-dark">
           <Plus size={16} /> Tambah Lokasi
         </Button>
-      </div>
-
-      {/* Jembatan ke Kelola Tarif — angka tarif tidak lagi statis di sini */}
-      <div className="rounded-3xl border-2 border-unp/25 bg-unp-soft/40 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark text-unp-deep shadow-md">
-              <MapPin size={22} />
-            </span>
-            <div>
-              <p className="text-sm font-extrabold">Tarif diatur lewat panel Kelola Tarif</p>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Tarif dihitung dari jarak tempuh rute plus tambahan resmi — angkanya bisa diubah kapan saja di
-                Kelola Tarif. Pastikan setiap lokasi memiliki koordinat peta agar jarak terukur.
-              </p>
-            </div>
-          </div>
-          <Button onClick={() => navigate("/kelola-tarif")} variant="outline" className="shrink-0 border-2 font-bold">
-            Buka Kelola Tarif
-          </Button>
-        </div>
       </div>
 
       {/* Daftar lokasi per kategori */}
